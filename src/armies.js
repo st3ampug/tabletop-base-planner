@@ -5,6 +5,7 @@ import { cssW, cssH, s2w, dirty, lum, setStatus } from './render.js';
 import { select } from './ui/actions.js';
 import { el, swatches, renderInspector } from './ui/panel.js';
 import { renderImport } from './import.js';
+import { toggleWatch, watchArmy, isWatched } from './ui/watch.js';
 
 /* ---------- armies ---------- */
 let armyView = 'friendly';
@@ -110,13 +111,16 @@ function renderArmies(){
   box.appendChild(el('div', { class:'row' }, [ Object.assign(el('button', { class:'btn primary', id:'army-deploy', text: nOn === units.length && units.length ? 'All deployed' : nOn ? 'Deploy the rest' : 'Deploy all', onclick: () => deployAll(k) }), { disabled: !units.length || nOn === units.length }),
     el('button', { class:'btn danger', id:'army-clear', text:'Clear from table', onclick: () => clearArmy(k) }),
     el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' }) ]));
+  const nW = units.filter(un => isWatched(k + ':' + un.key)).length;
+  if (nOn) box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'army-watch', text:'Watch all', title:'Show where this whole army can see', onclick: () => watchArmy(k, true) }),
+    el('button', { class:'btn', id:'army-unwatch', text:'Unwatch all', onclick: () => watchArmy(k, false) }), el('span', { class:'hint k', text: nW + ' watched for sight' }) ]));
   const list = el('div', { class:'units' });
   units.forEach(un => {
     const on = onT(un), u = k + ':' + un.key, fg = lum(army.colour) > 0.55 ? '#111' : '#fff';
     list.appendChild(el('div', { class:'unit' + (on ? ' on' : '') }, [
       el('span', { class:'tag', style:'background:' + army.colour + ';color:' + fg, text: un.key }),
       el('span', { class:'nm', text: un.name }),
-      el('div', { class:'acts' }, on ? [ el('button', { class:'btn', text:'Find', 'aria-label':'Find ' + un.name, onclick: () => focusUnit(u) }), el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
+      el('div', { class:'acts' }, on ? [ el('button', { class:'btn eye', 'aria-pressed': String(isWatched(u)), text:'👁', title:'Show where this unit can see', 'aria-label': (isWatched(u) ? 'Stop watching ' : 'Watch ') + un.name, onclick: () => toggleWatch(u) }), el('button', { class:'btn', text:'Find', 'aria-label':'Find ' + un.name, onclick: () => focusUnit(u) }), el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
         : [ el('button', { class:'btn', text:'Deploy', 'aria-label':'Deploy ' + un.name, onclick: () => { pushUndo(); deployUnit(k, un); save(); renderArmies(); focusUnit(u); } }) ]),
       el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : '') }) ]));
   });

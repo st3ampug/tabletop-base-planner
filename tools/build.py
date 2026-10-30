@@ -9,8 +9,8 @@ into the single script scope of src/app.src.html. Function declarations are hois
 while the script loads depends on that order; keep it when adding a module."""
 import glob, json, os, re, sys
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); out = sys.argv[1]
-MODULES = ['core.js', 'maps.js', 'state.js', 'geometry.js', 'render.js', 'ui/pointer.js', 'ui/actions.js', 'ui/panel.js',
-           'armies.js', 'import.js', 'ui/saveload.js', 'ui/boards.js', 'ui/keyboard.js', 'ui/help.js', 'main.js']
+MODULES = ['core.js', 'maps.js', 'state.js', 'geometry.js', 'sight.js', 'render.js', 'ui/pointer.js', 'ui/actions.js', 'ui/panel.js',
+           'armies.js', 'import.js', 'ui/watch.js', 'ui/saveload.js', 'ui/boards.js', 'ui/keyboard.js', 'ui/help.js', 'main.js']
 IMPORT = re.compile(r"^import\s*\{([^}]*)\}\s*from\s*'([^']+)';[ \t]*\n", re.M)
 EXPORT = re.compile(r"^export\s*\{([^}]*)\};[ \t]*\n", re.M)
 names = lambda s: [n.strip() for n in s.split(',') if n.strip()]

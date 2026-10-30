@@ -161,4 +161,4 @@ function findSpot(b, cx, cy){
   return clampToBoard(b, cx, cy, b.rot);
 }
 
-export { pip, segD2, rad, extents, isHull, basePoly, clampToBoard, ruleOf, blockers, tryMove, edgeDist, cohIssues, ringPath, moveGroup, findSpot };
+export { pip, segD2, rad, extents, isHull, basePoly, clampToBoard, ruleOf, blockers, tryMove, edgeDist, cohIssues, ringPath, moveGroup, findSpot, outline, reach };
