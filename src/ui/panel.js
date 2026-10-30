@@ -6,6 +6,7 @@ import { cv, resize, fit, dirty, ZONE, setStatus } from '../render.js';
 import { editTerrain, select, sizeName, addBases, removeSel, dupSel, rotateSel, setRule, rectPoly, ovalPoly, TEMPLATES, addTerrain, turnTerrain, removeTerrain, dupTerrain, setEditTerrain } from './actions.js';
 import { findUnit, removeUnit, setUnitMove, renderArmies } from '../armies.js';
 import { renderBoards } from './boards.js';
+import { toggleWatch, isWatched, syncSightUI } from './watch.js';
 
 /* ---------- panel ---------- */
 let editSizes = false;
@@ -50,7 +51,8 @@ function renderInspector(){
   if (b.u){ const un = findUnit(b.u), n = S.bases.filter(x => x.u === b.u).length;
     box.appendChild(el('p', { class:'hint', text: (un ? un.name : 'Unit no longer in the roster') + ' · ' + S.armies[b.army].name + ' · ' + n + (n === 1 ? ' model' : ' models') }));
     box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'f-unitmove', 'aria-pressed': String(S.unitMove), text: S.unitMove ? 'Dragging the whole unit' : 'Dragging one model', onclick: () => setUnitMove(!S.unitMove) }),
-      el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }) ])); }
+      el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }),
+      el('button', { class:'btn', id:'f-watch', 'aria-pressed': String(isWatched(b.u)), text: isWatched(b.u) ? 'Watching its sight' : 'Watch its sight', title:'Show where this unit can see', onclick: () => toggleWatch(b.u) }) ])); }
   box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-label', text:'Label' }),
     el('input', { type:'text', id:'f-label', maxlength:'6', value: b.label, autocomplete:'off', oninput: e => { b.label = e.target.value.slice(0, 6); save(); dirty(); } }) ]));
   box.appendChild(el('div', { class:'row', role:'group', 'aria-label':'Base colour' }, swatches(b.colour, c => { pushUndo(); b.colour = c; save(); renderInspector(); dirty(); }, 'fc-')));
@@ -114,7 +116,7 @@ $('map-btn').addEventListener('click', () => { pkPair = null; renderPicker(); tr
 $('pk-close').addEventListener('click', () => $('picker').close());
 $('picker').addEventListener('click', e => { if (e.target === $('picker')) $('picker').close(); });
 function syncRulesUI(){ $('mode-stop').setAttribute('aria-pressed', String(S.mode === 'stop')); $('mode-flag').setAttribute('aria-pressed', String(S.mode === 'flag')); $('base-collide').checked = S.baseCollide; $('btn-undo').disabled = !undo.length;
-  $('coh-on').checked = S.coh.on; $('coh-dist').value = S.coh.dist; $('coh-big').value = S.coh.big; $('coh-group').checked = S.coh.group; }
+  $('coh-on').checked = S.coh.on; $('coh-dist').value = S.coh.dist; $('coh-big').value = S.coh.big; $('coh-group').checked = S.coh.group; syncSightUI(); }
 $('coh-on').addEventListener('change', e => { S.coh.on = e.target.checked; save(); dirty(); });
 $('coh-group').addEventListener('change', e => { S.coh.group = e.target.checked; save(); dirty(); });
 $('coh-dist').addEventListener('change', e => { S.coh.dist = Math.max(0.5, Math.min(12, +e.target.value || 2)); e.target.value = S.coh.dist; save(); dirty(); });

@@ -7,6 +7,8 @@ import { renderNewColours, renderInspector, buildMapSelect, setMap, syncRulesUI,
 import { parseRoster, deployUnit, footprint, deployAll, setUnitMove, renderArmies } from './armies.js';
 import { readList } from './import.js';
 import { newId, renderBoards } from './ui/boards.js';
+import { select } from './ui/actions.js';
+import { isSeen, sightStats, sightTime } from './sight.js';
 
 /* ---------- boot ---------- */
 function seedExample(){
@@ -23,4 +25,4 @@ renderNewColours(); setUnitMove(S.unitMove);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
 resize();
 if (!restored) setStatus('Both example armies deployed. Change them in the Armies tab.');
-window.__planner = { get S(){ return S; }, get M(){ return M; }, get T(){ return T; }, get BX(){ return BX; }, blockers, tryMove, moveGroup, parseRoster, readList, deployAll, setMap, cohIssues, edgeDist, view, MAPS };
+window.__planner = { get S(){ return S; }, get M(){ return M; }, get T(){ return T; }, get BX(){ return BX; }, blockers, tryMove, moveGroup, parseRoster, readList, deployAll, setMap, cohIssues, edgeDist, view, MAPS, applyState, select, isSeen, sightStats, sightTime };

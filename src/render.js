@@ -3,6 +3,7 @@ import { S, M, T, sel, view, ruler } from './state.js';
 import { rad, isHull, ruleOf, blockers, cohIssues, ringPath } from './geometry.js';
 import { drag } from './ui/pointer.js';
 import { updateBaseWarn } from './ui/panel.js';
+import { drawSight, sightStatus } from './sight.js';
 
 /* ---------- canvas ---------- */
 const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
@@ -97,6 +98,7 @@ function draw(){
   }
   for (const t of T) if (t.objective) objIcon(t);
   for (const m of M.markers){ ctx.fillStyle = 'rgba(20,26,24,.55)'; ctx.beginPath(); ctx.moveTo(m[0], m[1]-12); ctx.lineTo(m[0]+12, m[1]); ctx.lineTo(m[0], m[1]+12); ctx.lineTo(m[0]-12, m[1]); ctx.fill(); }
+  drawSight(ctx);
   // bases
   let badCount = 0; const selUnit = sel && sel.type === 'base' && S.unitMove ? sel.b.u : null;
   const coh = cohIssues(); let cohUnits = [];
@@ -146,7 +148,7 @@ function draw(){
   if (!liveMsg){ const parts = [];
     if (badCount) parts.push(badCount + (badCount === 1 ? ' base is' : ' bases are') + ' in an illegal position');
     if (cohUnits.length) parts.push('Out of coherency: ' + cohUnits.join(', '));
-    setStatus(parts.join(' · '), !!parts.length, true); }
+    setStatus(parts.length ? parts.join(' · ') : sightStatus(), !!parts.length, true); }
   if (sel && sel.type === 'base') updateBaseWarn();
 }
 let liveMsg = false, msgT = 0;

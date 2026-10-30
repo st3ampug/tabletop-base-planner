@@ -14,6 +14,7 @@ WHAT THE PLANNER DOES
 - All 45 Battlemaster 11th-edition terrain layouts: 5 Force Dispositions (Take and Hold TAH, Disruption DIS, Purge the Foe PTF, Priority Assets PA, Reconnaissance REC), every pairing, 3 variants each. The layout ids look like bm-take-vs-recon-01 and use the abbreviations take, disrupt, purge, assets, recon. Both disposition orders use the same table.
 - A friendly and a hostile army as true-size bases (round, oval, or a rectangular hull for vehicles without a base). Leaders and bodyguards are one unit.
 - Collision: walls, barriers, pipes and generators block bases by default, and the terrain areas around them can be entered. Bases block each other.
+- A line-of-sight overlay: it tints red everywhere the watched units can see, with walls blocking and terrain areas blocking sight through them. There are no terrain heights.
 - Range rings from base edges, a coherency check, saved boards, and a ruler. The coherency settings default to 10th-edition values (2", two neighbours for units of 7+); I set them to my 11th-edition card.
 
 HOW I GET ARMIES IN
@@ -31,7 +32,7 @@ THE BOARD TEXT (what I paste to you: Save tab → Copy board)
 - Millimetres (25.4 mm = 1"). The origin is the top-left corner and y increases downwards. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red (attacker) zone at the top and blue (defender) at the bottom. My army is "friendly" and its zone is in armies.friendly.side.
 - bases[]: id; w and h (mm, w ≥ h, w = h for round); x and y (the centre); rot (degrees clockwise, turns the long axis w); shape "hull" for vehicles; label; army ("friendly" or "hostile"); u (unit key, e.g. "friendly:LUC").
 - armies.friendly / armies.hostile: name, colour, side ("blue" or "red"), roster (the format above).
-- mapId, mode ("stop" or "flag"), coh (coherency settings), ring.
+- mapId, mode ("stop" or "flag"), coh (coherency settings), ring, los (line-of-sight settings: on, watch (unit keys like "hostile:LYS"), range in inches with 0 for any, areas, partial).
 - table (read-only, describes the table, ignored when I load a board):
     table.zones[]       { owner: "red"|"blue", poly: [[x,y],...] }
     table.objectives[]  { role: "home"|"centre"|"expansion", owner (home only), x, y }. These are marker centres; the marker size isn't in the data, so assume 40 mm and say so.

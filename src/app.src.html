@@ -116,9 +116,13 @@ dialog#picker::backdrop,dialog#help::backdrop{background:rgba(0,0,0,.45)}
 .board .bn{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
 .board .bd{font-size:11px;color:var(--muted);font-family:var(--mono)}
 .board .btn{min-height:32px;padding:5px 9px}
-.dragmode{position:absolute;right:12px;top:10px;display:flex;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.boardtools{position:absolute;right:12px;top:10px;display:flex;gap:8px;align-items:flex-start}
+.dragmode{display:flex;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .dragmode button{border:0;background:rgba(245,247,246,.94);color:#17201d;font:600 12.5px var(--font);padding:7px 11px;min-height:34px;cursor:pointer}
 .dragmode button[aria-pressed="true"]{background:#0e6b5a;color:#fff}
+.sightbtn{border:1px solid rgba(0,0,0,.5);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.3);background:rgba(245,247,246,.94);color:#17201d;font:600 12.5px var(--font);padding:7px 11px;min-height:34px;cursor:pointer}
+.sightbtn[aria-pressed="true"]{background:#b3261e;color:#fff}
+.unit .acts .btn.eye{padding:5px 7px}
 .dragmode span{background:rgba(10,14,13,.82);color:#f1f5f3;font:600 11px var(--font);padding:0 8px;display:flex;align-items:center;letter-spacing:.04em;text-transform:uppercase}
 details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px;margin:8px 0 0}
 
@@ -164,14 +168,15 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
       <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
       <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency.</li>
+      <li><b>Sight:</b> the <b>Sight</b> button on the board tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; turning Sight on with nothing watched watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
     </ul>
     <h3>The tabs</h3>
     <ul>
-      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, and edit the roster by hand.</li>
+      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, watch units for the Sight overlay (the eye buttons), and edit the roster by hand.</li>
       <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", or any distance), duplicate or remove.</li>
       <li><b>Bases:</b> add loose bases by size, for models that aren't in a list.</li>
       <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
-      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, and the coherency distance. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
+      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
       <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file.</li>
     </ul>
     <h3>Keys</h3>
@@ -186,7 +191,7 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Set the sides.</b> The attacker deploys in the red zone at the top. If you're on the wrong side, press <b>Swap sides</b>.</li>
       <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
       <li><b>Keep the deployment.</b> In the Save tab, press <b>Duplicate this board</b> and rename the copy, e.g. "Deployment", so you can come back to it.</li>
-      <li><b>Play each turn.</b> Move units with the distance readout and the ruler, check ranges with rings, and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
+      <li><b>Play each turn.</b> Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings, and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
       <li><b>Review.</b> Copy any board as text from the Save tab. It includes the table layout, so an analysis AI can read the positions.</li>
     </ol>
     <p class="legend">Recording a game round by round, with wounds and replay, is planned. Until then, a board per turn keeps the history.</p>
@@ -208,7 +213,8 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
   <div class="stage" id="stage">
     <canvas id="cv" aria-label="Battlefield. Drag bases to move them, drag the table to pan, pinch or scroll to zoom."></canvas>
     <div class="status" aria-live="polite"><span id="status"></span></div>
-    <div class="dragmode" role="group" aria-label="What a drag moves"><span>Drag</span><button id="dm-unit" aria-pressed="true">Unit</button><button id="dm-model" aria-pressed="false">Model</button></div>
+    <div class="boardtools"><button class="sightbtn" id="btn-sight" aria-pressed="false" title="Tint everywhere the watched units can see">Sight</button>
+    <div class="dragmode" role="group" aria-label="What a drag moves"><span>Drag</span><button id="dm-unit" aria-pressed="true">Unit</button><button id="dm-model" aria-pressed="false">Model</button></div></div>
   </div>
 
   <aside class="panel" id="panel" data-tab="army">
@@ -299,6 +305,12 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
         </div>
         <label class="row" style="gap:8px"><input type="checkbox" id="coh-group" checked> <span>The unit must form one group</span></label>
         <p class="hint">Defaults are the 10th-edition values: within 2" of one other model, two others for units of 7 or more. Set them to your 11th-edition card. Distances are measured base edge to base edge.</p>
+        <h2 style="margin-top:6px">Line of sight</h2>
+        <p class="hint">Turn on <b>Sight</b> on the board to tint red everywhere the watched units can see. Pick the units with the eye buttons in the Armies tab.</p>
+        <label class="row" style="gap:8px"><input type="checkbox" id="los-areas" checked> <span>Terrain areas block sight through them</span></label>
+        <div class="ringchips" id="los-range" role="group" aria-label="Sight range"></div>
+        <label class="row" style="gap:8px"><input type="checkbox" id="los-partial" checked> <span>A base is seen if any part of it is seen</span></label>
+        <p class="hint">Walls and solid scenery always block sight. Areas block it like 10th-edition ruins: models see into an area and out of it, not through it. Set this to your 11th-edition card. Range is measured from the watching model's base edge. There are no terrain heights, and models don't block sight.</p>
       </section>
 
       <section class="sec" data-sec="save">

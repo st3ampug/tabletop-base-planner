@@ -122,9 +122,13 @@ dialog#picker::backdrop,dialog#help::backdrop{background:rgba(0,0,0,.45)}
 .board .bn{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
 .board .bd{font-size:11px;color:var(--muted);font-family:var(--mono)}
 .board .btn{min-height:32px;padding:5px 9px}
-.dragmode{position:absolute;right:12px;top:10px;display:flex;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.boardtools{position:absolute;right:12px;top:10px;display:flex;gap:8px;align-items:flex-start}
+.dragmode{display:flex;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .dragmode button{border:0;background:rgba(245,247,246,.94);color:#17201d;font:600 12.5px var(--font);padding:7px 11px;min-height:34px;cursor:pointer}
 .dragmode button[aria-pressed="true"]{background:#0e6b5a;color:#fff}
+.sightbtn{border:1px solid rgba(0,0,0,.5);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.3);background:rgba(245,247,246,.94);color:#17201d;font:600 12.5px var(--font);padding:7px 11px;min-height:34px;cursor:pointer}
+.sightbtn[aria-pressed="true"]{background:#b3261e;color:#fff}
+.unit .acts .btn.eye{padding:5px 7px}
 .dragmode span{background:rgba(10,14,13,.82);color:#f1f5f3;font:600 11px var(--font);padding:0 8px;display:flex;align-items:center;letter-spacing:.04em;text-transform:uppercase}
 details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px;margin:8px 0 0}
 
@@ -172,14 +176,15 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
       <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
       <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency.</li>
+      <li><b>Sight:</b> the <b>Sight</b> button on the board tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; turning Sight on with nothing watched watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
     </ul>
     <h3>The tabs</h3>
     <ul>
-      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, and edit the roster by hand.</li>
+      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, watch units for the Sight overlay (the eye buttons), and edit the roster by hand.</li>
       <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", or any distance), duplicate or remove.</li>
       <li><b>Bases:</b> add loose bases by size, for models that aren't in a list.</li>
       <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
-      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, and the coherency distance. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
+      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
       <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file.</li>
     </ul>
     <h3>Keys</h3>
@@ -194,7 +199,7 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Set the sides.</b> The attacker deploys in the red zone at the top. If you're on the wrong side, press <b>Swap sides</b>.</li>
       <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
       <li><b>Keep the deployment.</b> In the Save tab, press <b>Duplicate this board</b> and rename the copy, e.g. "Deployment", so you can come back to it.</li>
-      <li><b>Play each turn.</b> Move units with the distance readout and the ruler, check ranges with rings, and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
+      <li><b>Play each turn.</b> Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings, and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
       <li><b>Review.</b> Copy any board as text from the Save tab. It includes the table layout, so an analysis AI can read the positions.</li>
     </ol>
     <p class="legend">Recording a game round by round, with wounds and replay, is planned. Until then, a board per turn keeps the history.</p>
@@ -216,7 +221,8 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
   <div class="stage" id="stage">
     <canvas id="cv" aria-label="Battlefield. Drag bases to move them, drag the table to pan, pinch or scroll to zoom."></canvas>
     <div class="status" aria-live="polite"><span id="status"></span></div>
-    <div class="dragmode" role="group" aria-label="What a drag moves"><span>Drag</span><button id="dm-unit" aria-pressed="true">Unit</button><button id="dm-model" aria-pressed="false">Model</button></div>
+    <div class="boardtools"><button class="sightbtn" id="btn-sight" aria-pressed="false" title="Tint everywhere the watched units can see">Sight</button>
+    <div class="dragmode" role="group" aria-label="What a drag moves"><span>Drag</span><button id="dm-unit" aria-pressed="true">Unit</button><button id="dm-model" aria-pressed="false">Model</button></div></div>
   </div>
 
   <aside class="panel" id="panel" data-tab="army">
@@ -307,6 +313,12 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
         </div>
         <label class="row" style="gap:8px"><input type="checkbox" id="coh-group" checked> <span>The unit must form one group</span></label>
         <p class="hint">Defaults are the 10th-edition values: within 2" of one other model, two others for units of 7 or more. Set them to your 11th-edition card. Distances are measured base edge to base edge.</p>
+        <h2 style="margin-top:6px">Line of sight</h2>
+        <p class="hint">Turn on <b>Sight</b> on the board to tint red everywhere the watched units can see. Pick the units with the eye buttons in the Armies tab.</p>
+        <label class="row" style="gap:8px"><input type="checkbox" id="los-areas" checked> <span>Terrain areas block sight through them</span></label>
+        <div class="ringchips" id="los-range" role="group" aria-label="Sight range"></div>
+        <label class="row" style="gap:8px"><input type="checkbox" id="los-partial" checked> <span>A base is seen if any part of it is seen</span></label>
+        <p class="hint">Walls and solid scenery always block sight. Areas block it like 10th-edition ruins: models see into an area and out of it, not through it. Set this to your 11th-edition card. Range is measured from the watching model's base edge. There are no terrain heights, and models don't block sight.</p>
       </section>
 
       <section class="sec" data-sec="save">
@@ -448,7 +460,7 @@ const DEFAULT_ARMIES = {
     "RV2 | Reivers | 5 @ 32 RV2" ].join('\n') }
 };
 const cloneArmies = a => JSON.parse(JSON.stringify(a));
-let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, bases:[], mode:'stop', baseCollide:true, nextId:1 };
+let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, bases:[], mode:'stop', baseCollide:true, nextId:1 };
 let M = MAPS[S.mapId];
 let T = [];                // live terrain of the current layout
 // Other modules can read these live bindings but not assign them, so they go through setters.
@@ -468,7 +480,7 @@ const undo = [];
 const view = { s: 0.3, ox: 0, oy: 0 };
 const ruler = { on:false, a:null, b:null };
 
-function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, bases:S.bases, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
+function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, bases:S.bases, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
 function pushUndo(snap){ undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
 function applyState(o){
   const custom = {};
@@ -479,7 +491,8 @@ function applyState(o){
   const armies = cloneArmies(DEFAULT_ARMIES);
   for (const k of ['friendly', 'hostile']) if (o.armies && o.armies[k]) Object.assign(armies[k], o.armies[k]);
   const coh = Object.assign({ on:true, dist:2, big:7, group:true }, o.coh || {});
-  S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0,
+  const lo = o.los || {}, los = { on: lo.on === true, watch: Array.isArray(lo.watch) ? lo.watch.filter(u => typeof u === 'string') : [], range: Math.max(0, +lo.range || 0), areas: lo.areas !== false, partial: lo.partial !== false };
+  S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0, los,
         bases: (o.bases || []).filter(b => b && b.w > 0 && b.h > 0 && isFinite(b.x) && isFinite(b.y)).map(b => ({
           id: b.id, w:+b.w, h:+b.h, x:+b.x, y:+b.y, rot:+b.rot || 0, colour: b.colour || COLOURS[0], label: String(b.label || '').slice(0,6),
           shape: b.shape === 'hull' ? 'hull' : undefined, army: b.army || undefined, u: b.u || undefined })),
@@ -666,6 +679,113 @@ function findSpot(b, cx, cy){
   return clampToBoard(b, cx, cy, b.rot);
 }
 
+// src/sight.js
+/* ---------- sight ---------- */
+// Line-of-sight mask. Each watched model looks out from 6 or 8 points on its base edge. Walls, and terrain areas when
+// S.los.areas is on, cast shadows away from each point; a spot is hidden when it is in shadow from every point.
+// The mask is a canvas at LOS_MM per pixel. Each point's shadows are filled straight onto it with destination-in,
+// which keeps only what is also in that point's shadow.
+const LOS_MM = 4;                                   // compositing costs per pixel; 4 mm keeps a full army well under a second
+const FAR = 4000;                                   // shadows run on past the board edge
+let LA = null;                                      // the hidden-from-all mask
+let losKey = null, losHid = null, losD2 = null, losW = 0, losH = 0, losMs = 0, losViews = 0, losUnits = 0;
+let LO = null, loKey = null;                        // the overlay image, and the state it was drawn for
+
+const losOn = () => S.los.on && S.los.watch.length > 0;
+function watchers(){ const w = new Set(S.los.watch); return S.bases.filter(b => b.u && w.has(b.u)); }
+function viewpoints(b){
+  if (!isHull(b)) return outline(b, b.x, b.y, rad(b.rot), b.w <= 50 ? 6 : 8);   // 6 points stay within a mask pixel of a base up to 50 mm
+  const c = basePoly(b, b.x, b.y, rad(b.rot)); return c.concat(c.map((q, i) => { const n = c[(i+1) % 4]; return [(q[0]+n[0])/2, (q[1]+n[1])/2]; }));
+}
+// Pieces that block sight, with the sign of their winding so the far-side edges can be found from any point.
+function sightBlockers(){
+  return T.filter(t => t.kind === 'scenery' ? !t.objective : S.los.areas).map(t => {
+    const p = t.poly; let a = 0; for (let i = 0, j = p.length-1; i < p.length; j = i++) a += p[j][0]*p[i][1] - p[i][0]*p[j][1];
+    return { p, s: a > 0 ? 1 : -1 };
+  });
+}
+function computeSight(){
+  const t0 = performance.now(), W = Math.ceil(M.W/LOS_MM), H = Math.ceil(M.H/LOS_MM);
+  if (!LA) LA = document.createElement('canvas');
+  if (LA.width !== W || LA.height !== H){ LA.width = W; LA.height = H; }
+  const a = LA.getContext('2d');
+  a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-over'; a.fillStyle = '#000'; a.fillRect(0, 0, W, H);   // hidden until a viewpoint sees it
+  a.setTransform(1/LOS_MM, 0, 0, 1/LOS_MM, 0, 0); a.globalCompositeOperation = 'destination-in';
+  const blk = sightBlockers(), R = S.los.range*IN, ws = watchers(); let n = 0;
+  for (const m of ws) for (const v of viewpoints(m)){
+    const b = a; b.beginPath();
+    for (const k of blk){
+      const p = k.p; if (pip(v[0], v[1], p)) continue;            // a model inside an area sees out of it
+      for (let i = 0, j = p.length-1; i < p.length; j = i++){
+        let P = p[j], Q = p[i];
+        // only edges with the viewpoint on their inner side: a sight line leaves the piece through them
+        if (((Q[0]-P[0])*(v[1]-P[1]) - (Q[1]-P[1])*(v[0]-P[0])) * k.s <= 0) continue;
+        if (k.s < 0){ const x = P; P = Q; Q = x; }                  // same winding for every quad, so nonzero fill never cancels
+        const pl = Math.hypot(P[0]-v[0], P[1]-v[1]) || 1, ql = Math.hypot(Q[0]-v[0], Q[1]-v[1]) || 1;
+        b.moveTo(P[0], P[1]); b.lineTo(Q[0], Q[1]);
+        b.lineTo(Q[0] + (Q[0]-v[0])/ql*FAR, Q[1] + (Q[1]-v[1])/ql*FAR); b.lineTo(P[0] + (P[0]-v[0])/pl*FAR, P[1] + (P[1]-v[1])/pl*FAR); b.closePath();
+      }
+    }
+    // Out of range is shadow too: the board wound like the quads, minus the range circle wound the other way.
+    if (R > 0){ const e = LOS_MM; b.moveTo(-e, -e); b.lineTo(-e, M.H + e); b.lineTo(M.W + e, M.H + e); b.lineTo(M.W + e, -e); b.closePath();
+      b.moveTo(v[0] + R, v[1]); b.arc(v[0], v[1], R, 0, 2*Math.PI); b.closePath(); }
+    b.fill('nonzero'); n++;
+  }
+  a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-over';
+  const d = a.getImageData(0, 0, W, H).data, hid = new Uint8Array(W*H);
+  for (let i = 0; i < W*H; i++) hid[i] = d[i*4 + 3] > 127 ? 1 : 0;
+  losHid = hid; losD2 = edt(hid, W, H); losW = W; losH = H;
+  losViews = n; losUnits = new Set(ws.map(m => m.u)).size; losMs = Math.round(performance.now() - t0);
+}
+// Squared distance in pixels from each hidden pixel to the nearest seen one (Felzenszwalb and Huttenlocher).
+function edt(hid, W, H){
+  const BIG = 1e20, D = new Float64Array(W*H), L = Math.max(W, H), f = new Float64Array(L), out = new Float64Array(L), v = new Int32Array(L), z = new Float64Array(L + 1);
+  for (let i = 0; i < W*H; i++) D[i] = hid[i] ? BIG : 0;
+  const pass = n => {
+    let k = 0; v[0] = 0; z[0] = -BIG; z[1] = BIG;
+    for (let q = 1; q < n; q++){
+      let s = ((f[q] + q*q) - (f[v[k]] + v[k]*v[k])) / (2*q - 2*v[k]);
+      while (s <= z[k]){ k--; s = ((f[q] + q*q) - (f[v[k]] + v[k]*v[k])) / (2*q - 2*v[k]); }
+      k++; v[k] = q; z[k] = s; z[k+1] = BIG;
+    }
+    k = 0; for (let q = 0; q < n; q++){ while (z[k+1] < q) k++; out[q] = (q - v[k])*(q - v[k]) + f[v[k]]; }
+  };
+  for (let x = 0; x < W; x++){ for (let y = 0; y < H; y++) f[y] = D[y*W + x]; pass(H); for (let y = 0; y < H; y++) D[y*W + x] = out[y]; }
+  for (let y = 0; y < H; y++){ for (let x = 0; x < W; x++) f[x] = D[y*W + x]; pass(W); for (let x = 0; x < W; x++) D[y*W + x] = out[x]; }
+  return D;
+}
+function sightKey(){
+  const r1 = v => Math.round(v*10);
+  return [M.id, S.los.areas, S.los.range].concat(T.map(t => t.kind[0] + (t.objective ? 'o' : '') + r1(t.c[0]) + ',' + r1(t.c[1]) + ',' + r1(t.poly[0][0]) + ',' + r1(t.poly[0][1])), '|',
+    watchers().map(b => [b.u, r1(b.x), r1(b.y), r1(b.rot), b.w, b.h, b.shape || ''].join(','))).join(';');
+}
+// While a base is being dragged the last mask stays up; it catches up when the drag ends.
+function sightFresh(){ if (drag && losHid) return; const k = sightKey(); if (k !== losKey){ computeSight(); losKey = k; } }
+// With "any part seen" on, a spot is only safe if the selected unit's biggest base fits there wholly in shadow.
+function fitRadius(){
+  if (!S.los.partial || !sel || sel.type !== 'base') return 0;
+  return Math.max(...(sel.b.u ? S.bases.filter(b => b.u === sel.b.u) : [sel.b]).map(reach));
+}
+const seenPx = (i, rr) => !losHid[i] || (rr > 0 && losD2[i] <= rr*rr);
+function isSeen(x, y){
+  if (!losOn() || x < 0 || y < 0 || x >= M.W || y >= M.H) return false; sightFresh();
+  return seenPx(Math.floor(y/LOS_MM)*losW + Math.floor(x/LOS_MM), fitRadius()/LOS_MM);
+}
+function drawSight(c){
+  if (!losOn()) return; sightFresh();
+  const r = fitRadius(), k = losKey + '|' + r;
+  if (k !== loKey){
+    if (!LO) LO = document.createElement('canvas'); LO.width = losW; LO.height = losH;
+    const o = LO.getContext('2d'), img = o.createImageData(losW, losH), px = img.data, rr = r/LOS_MM;
+    for (let i = 0; i < losW*losH; i++) if (seenPx(i, rr)){ px[i*4] = 214; px[i*4+1] = 38; px[i*4+2] = 24; px[i*4+3] = 96; }
+    o.putImageData(img, 0, 0); loKey = k;
+  }
+  c.save(); c.beginPath(); c.rect(0, 0, M.W, M.H); c.clip(); c.imageSmoothingEnabled = true; c.drawImage(LO, 0, 0, losW*LOS_MM, losH*LOS_MM); c.restore();
+}
+function sightStatus(){ return losOn() ? 'Seen by ' + losUnits + (losUnits === 1 ? ' watched unit' : ' watched units') + (S.los.range ? ' · ' + S.los.range + '" range' : '') + ' · red is in sight' : ''; }
+const sightStats = () => ({ ms: losMs, views: losViews, units: losUnits });
+function sightTime(){ losKey = null; sightFresh(); return losMs; }
+
 // src/render.js
 /* ---------- canvas ---------- */
 const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
@@ -760,6 +880,7 @@ function draw(){
   }
   for (const t of T) if (t.objective) objIcon(t);
   for (const m of M.markers){ ctx.fillStyle = 'rgba(20,26,24,.55)'; ctx.beginPath(); ctx.moveTo(m[0], m[1]-12); ctx.lineTo(m[0]+12, m[1]); ctx.lineTo(m[0], m[1]+12); ctx.lineTo(m[0]-12, m[1]); ctx.fill(); }
+  drawSight(ctx);
   // bases
   let badCount = 0; const selUnit = sel && sel.type === 'base' && S.unitMove ? sel.b.u : null;
   const coh = cohIssues(); let cohUnits = [];
@@ -809,7 +930,7 @@ function draw(){
   if (!liveMsg){ const parts = [];
     if (badCount) parts.push(badCount + (badCount === 1 ? ' base is' : ' bases are') + ' in an illegal position');
     if (cohUnits.length) parts.push('Out of coherency: ' + cohUnits.join(', '));
-    setStatus(parts.join(' · '), !!parts.length, true); }
+    setStatus(parts.length ? parts.join(' · ') : sightStatus(), !!parts.length, true); }
   if (sel && sel.type === 'base') updateBaseWarn();
 }
 let liveMsg = false, msgT = 0;
@@ -1021,7 +1142,8 @@ function renderInspector(){
   if (b.u){ const un = findUnit(b.u), n = S.bases.filter(x => x.u === b.u).length;
     box.appendChild(el('p', { class:'hint', text: (un ? un.name : 'Unit no longer in the roster') + ' · ' + S.armies[b.army].name + ' · ' + n + (n === 1 ? ' model' : ' models') }));
     box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'f-unitmove', 'aria-pressed': String(S.unitMove), text: S.unitMove ? 'Dragging the whole unit' : 'Dragging one model', onclick: () => setUnitMove(!S.unitMove) }),
-      el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }) ])); }
+      el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }),
+      el('button', { class:'btn', id:'f-watch', 'aria-pressed': String(isWatched(b.u)), text: isWatched(b.u) ? 'Watching its sight' : 'Watch its sight', title:'Show where this unit can see', onclick: () => toggleWatch(b.u) }) ])); }
   box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-label', text:'Label' }),
     el('input', { type:'text', id:'f-label', maxlength:'6', value: b.label, autocomplete:'off', oninput: e => { b.label = e.target.value.slice(0, 6); save(); dirty(); } }) ]));
   box.appendChild(el('div', { class:'row', role:'group', 'aria-label':'Base colour' }, swatches(b.colour, c => { pushUndo(); b.colour = c; save(); renderInspector(); dirty(); }, 'fc-')));
@@ -1085,7 +1207,7 @@ $('map-btn').addEventListener('click', () => { pkPair = null; renderPicker(); tr
 $('pk-close').addEventListener('click', () => $('picker').close());
 $('picker').addEventListener('click', e => { if (e.target === $('picker')) $('picker').close(); });
 function syncRulesUI(){ $('mode-stop').setAttribute('aria-pressed', String(S.mode === 'stop')); $('mode-flag').setAttribute('aria-pressed', String(S.mode === 'flag')); $('base-collide').checked = S.baseCollide; $('btn-undo').disabled = !undo.length;
-  $('coh-on').checked = S.coh.on; $('coh-dist').value = S.coh.dist; $('coh-big').value = S.coh.big; $('coh-group').checked = S.coh.group; }
+  $('coh-on').checked = S.coh.on; $('coh-dist').value = S.coh.dist; $('coh-big').value = S.coh.big; $('coh-group').checked = S.coh.group; syncSightUI(); }
 $('coh-on').addEventListener('change', e => { S.coh.on = e.target.checked; save(); dirty(); });
 $('coh-group').addEventListener('change', e => { S.coh.group = e.target.checked; save(); dirty(); });
 $('coh-dist').addEventListener('change', e => { S.coh.dist = Math.max(0.5, Math.min(12, +e.target.value || 2)); e.target.value = S.coh.dist; save(); dirty(); });
@@ -1235,13 +1357,16 @@ function renderArmies(){
   box.appendChild(el('div', { class:'row' }, [ Object.assign(el('button', { class:'btn primary', id:'army-deploy', text: nOn === units.length && units.length ? 'All deployed' : nOn ? 'Deploy the rest' : 'Deploy all', onclick: () => deployAll(k) }), { disabled: !units.length || nOn === units.length }),
     el('button', { class:'btn danger', id:'army-clear', text:'Clear from table', onclick: () => clearArmy(k) }),
     el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' }) ]));
+  const nW = units.filter(un => isWatched(k + ':' + un.key)).length;
+  if (nOn) box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'army-watch', text:'Watch all', title:'Show where this whole army can see', onclick: () => watchArmy(k, true) }),
+    el('button', { class:'btn', id:'army-unwatch', text:'Unwatch all', onclick: () => watchArmy(k, false) }), el('span', { class:'hint k', text: nW + ' watched for sight' }) ]));
   const list = el('div', { class:'units' });
   units.forEach(un => {
     const on = onT(un), u = k + ':' + un.key, fg = lum(army.colour) > 0.55 ? '#111' : '#fff';
     list.appendChild(el('div', { class:'unit' + (on ? ' on' : '') }, [
       el('span', { class:'tag', style:'background:' + army.colour + ';color:' + fg, text: un.key }),
       el('span', { class:'nm', text: un.name }),
-      el('div', { class:'acts' }, on ? [ el('button', { class:'btn', text:'Find', 'aria-label':'Find ' + un.name, onclick: () => focusUnit(u) }), el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
+      el('div', { class:'acts' }, on ? [ el('button', { class:'btn eye', 'aria-pressed': String(isWatched(u)), text:'👁', title:'Show where this unit can see', 'aria-label': (isWatched(u) ? 'Stop watching ' : 'Watch ') + un.name, onclick: () => toggleWatch(u) }), el('button', { class:'btn', text:'Find', 'aria-label':'Find ' + un.name, onclick: () => focusUnit(u) }), el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
         : [ el('button', { class:'btn', text:'Deploy', 'aria-label':'Deploy ' + un.name, onclick: () => { pushUndo(); deployUnit(k, un); save(); renderArmies(); focusUnit(u); } }) ]),
       el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : '') }) ]));
   });
@@ -1390,6 +1515,37 @@ function renderImport(box){
 function deployAllQuiet(k){ const { units } = parseRoster(S.armies[k].roster);
   for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
 
+// src/ui/watch.js
+/* ---------- watch ---------- */
+// Which units the line-of-sight mask looks from (S.los.watch, unit keys like "hostile:LYS"), the Sight button and the sight settings.
+const LOS_RANGES = [12, 18, 24, 36];
+const unitsOf = k => [...new Set(S.bases.filter(b => b.army === k && b.u).map(b => b.u))];
+function sightChanged(){ syncSightUI(); save(); renderArmies(); renderInspector(); dirty(); }
+function setSight(on){
+  S.los.on = on;
+  if (on && !S.los.watch.some(u => S.bases.some(b => b.u === u))){
+    S.los.watch = unitsOf('hostile');
+    if (S.los.watch.length) setStatus('Watching the whole hostile army. Pick units with the eye buttons in the Armies tab.');
+    else setStatus('Nothing to watch: deploy the hostile army first', true);
+  }
+  sightChanged();
+}
+function toggleWatch(u){ const w = S.los.watch, i = w.indexOf(u); if (i >= 0) w.splice(i, 1); else { w.push(u); S.los.on = true; } sightChanged(); }
+function watchArmy(k, on){ const us = unitsOf(k); S.los.watch = S.los.watch.filter(u => us.indexOf(u) < 0).concat(on ? us : []); if (on && us.length) S.los.on = true; sightChanged(); }
+const isWatched = u => S.los.watch.indexOf(u) >= 0;
+function setRange(v){ S.los.range = v; syncSightUI(); save(); dirty(); }
+function syncSightUI(){
+  $('btn-sight').setAttribute('aria-pressed', String(S.los.on)); $('los-areas').checked = S.los.areas; $('los-partial').checked = S.los.partial;
+  const box = $('los-range'); box.textContent = '';
+  box.appendChild(el('span', { class:'hint', style:'align-self:center', text:'Range' }));
+  [0].concat(LOS_RANGES).forEach(v => box.appendChild(el('button', { class:'chip', id:'los-r-' + v, 'aria-pressed': String(S.los.range === v), text: v ? v + '"' : 'Any', onclick: () => setRange(v) })));
+  box.appendChild(el('input', { type:'number', id:'los-r-custom', min:'0', max:'72', step:'1', value: LOS_RANGES.indexOf(S.los.range) < 0 && S.los.range ? String(S.los.range) : '', placeholder:'other', inputmode:'decimal',
+    'aria-label':'Sight range in inches', style:'width:76px', onchange: e => setRange(Math.max(0, Math.min(72, +e.target.value || 0))) }));
+}
+$('btn-sight').addEventListener('click', () => setSight(!S.los.on));
+$('los-areas').addEventListener('change', e => { S.los.areas = e.target.checked; save(); dirty(); });
+$('los-partial').addEventListener('change', e => { S.los.partial = e.target.checked; save(); dirty(); });
+
 // src/ui/saveload.js
 /* ---------- save / load ---------- */
 function ioMsg(t){ const m = $('io-msg'); m.hidden = !t; m.textContent = t || ''; }
@@ -1499,7 +1655,7 @@ renderNewColours(); setUnitMove(S.unitMove);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
 resize();
 if (!restored) setStatus('Both example armies deployed. Change them in the Armies tab.');
-window.__planner = { get S(){ return S; }, get M(){ return M; }, get T(){ return T; }, get BX(){ return BX; }, blockers, tryMove, moveGroup, parseRoster, readList, deployAll, setMap, cohIssues, edgeDist, view, MAPS };
+window.__planner = { get S(){ return S; }, get M(){ return M; }, get T(){ return T; }, get BX(){ return BX; }, blockers, tryMove, moveGroup, parseRoster, readList, deployAll, setMap, cohIssues, edgeDist, view, MAPS, applyState, select, isSeen, sightStats, sightTime };
 })();
 </script>
 

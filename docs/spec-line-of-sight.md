@@ -1,6 +1,6 @@
 # Spec: line-of-sight mask
 
-**Status:** draft for the owner to approve. **Owner:** Balint. **Read first:** `CLAUDE.md`. **Branch:** `line-of-sight`, built on `refactor-modules-and-help`.
+**Status:** approved by the owner on 30 October 2026; built on this branch. **Owner:** Balint. **Read first:** `CLAUDE.md`. **Branch:** `line-of-sight`, built on `refactor-modules-and-help`.
 
 ## Goal
 
@@ -24,9 +24,9 @@ Show, as a shaded overlay, every place on the table that chosen units can see, s
 
 ## How it works
 
-- **Viewpoints:** each watched model contributes 8 points around its base edge. A point on the table is visible if a straight line from any viewpoint reaches it without crossing a blocker.
+- **Viewpoints:** each watched model contributes points around its base edge (6 for bases up to 50 mm, 8 for larger ones and hulls). A point on the table is visible if a straight line from any viewpoint reaches it without crossing a blocker.
 - **Shadows:** for each viewpoint, every blocking edge casts a shadow (the edge projected away from the viewpoint to beyond the board). For terrain areas only the far-side edges cast shadows, so the inside of the area stays visible. An area containing the viewpoint casts no shadow. Outside the range limit counts as shadow too.
-- **Combining:** a point is hidden only if it is in shadow from every viewpoint of every watched model. This runs on an off-screen canvas at about 2 mm per pixel (about 560 × 760 px for the board), filling each viewpoint's shadows and intersecting them with canvas compositing (`destination-in`).
+- **Combining:** a point is hidden only if it is in shadow from every viewpoint of every watched model. This runs on an off-screen canvas at 4 mm per pixel (280 × 381 px for the board; 2 mm took over a second for a full army in the test browser), filling each viewpoint's shadows and intersecting them with canvas compositing (`destination-in`).
 - **Fitting the base:** for partial visibility, a distance transform over the hidden pixels gives each pixel's distance to the nearest visible point. A spot is safe for the selected unit if that distance is larger than the radius of its largest base.
 - **Caching:** the shadow mask is recalculated only when a watched model or the terrain moves, or a sight setting changes. Moving your own units or changing the selection only re-applies the base-size step.
 - **Display:** visible areas get a red tint with a crisp edge, drawn above the terrain and below the bases. Safe areas stay clear.

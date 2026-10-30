@@ -63,6 +63,47 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   await pg.reload(); await pg.waitForTimeout(400);
   ok(await P(() => window.__planner.BX.order.length) === 3 && await P(() => window.__planner.S.bases.length) === 95, 'boards survive a reload');
   await pg.screenshot({ path: shots + '/boards.png' });
+  // --- line of sight: the Sight button and watching from the Armies tab
+  await pg.click('#btn-sight'); await pg.waitForTimeout(300);
+  const st = await P(() => { const p = window.__planner, hostile = new Set(p.S.bases.filter(b => b.army === 'hostile').map(b => b.u)); return { on: p.S.los.on, n: p.S.los.watch.length, units: hostile.size, ms: p.sightTime() }; });
+  ok(st.on && st.n > 0 && st.n === st.units, 'Sight with nothing watched watches the whole hostile army: ' + JSON.stringify(st));
+  ok(st.ms < 500, 'mask for the whole hostile army in ' + st.ms + ' ms');
+  await pg.waitForTimeout(2400);   // the 'watching the whole hostile army' message shows first
+  ok((await pg.textContent('#status')).includes('watched units'), 'status line names the watched units');
+  await pg.screenshot({ path: shots + '/sight.png' });
+  await P(() => document.getElementById('army-hostile').click()); await pg.click('#army-unwatch');
+  ok(await P(() => window.__planner.S.los.watch.length) === 0, 'Unwatch all clears the hostile army');
+  await pg.locator('.unit .eye').first().click();
+  ok(await P(() => window.__planner.S.los.watch.length) === 1, 'the eye button watches one unit');
+  // --- line of sight: a wall (x 380-400, y 200-400) and a terrain area (x 300-500, y 600-800), all in mm
+  const LOS = (los, bases, pts, selU) => pg.evaluate(([los, bases, pts, selU]) => {
+    const p = window.__planner, id = p.S.mapId, rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    p.applyState({ mapId: id, terrain: { [id]: [ { id: 'w', name: 'Wall', kind: 'scenery', collision: 'block', poly: rect(380, 200, 400, 400) },
+        { id: 'a', name: 'Ruin', kind: 'area', collision: 'allow', poly: rect(300, 600, 500, 800) } ] },
+      bases: bases.map((b, i) => ({ id: i + 1, w: b[3] || 32, h: b[3] || 32, x: b[0], y: b[1], rot: 0, colour: '#d1a51c', label: 'M', army: b[2].split(':')[0], u: b[2] })),
+      los: Object.assign({ on: true, watch: ['hostile:W'] }, los) });
+    p.select(selU ? { type: 'base', b: p.S.bases.find(b => b.u === selU) } : null, true);
+    return pts.map(q => p.isSeen(q[0], q[1]));
+  }, [los, bases, pts, selU]);
+  const Wb = [200, 300, 'hostile:W'];
+  let r = await LOS({}, [Wb], [[600, 300], [200, 800], [400, 700], [600, 1100]]);
+  ok(r.join() === 'false,true,true,false', 'the wall hides, open ground and the inside of an area are seen, the area hides what is behind it: ' + r);
+  r = await LOS({ areas: false }, [Wb], [[600, 1100]]); ok(r[0] === true, 'with areas not blocking, the spot behind the area is seen');
+  r = await LOS({}, [[400, 700, 'hostile:W']], [[600, 1100], [100, 1300]]); ok(r[0] && r[1], 'a model inside an area sees out of it: ' + r);
+  r = await LOS({ range: 24 }, [Wb], [[200, 300 + 20*25.4], [200, 300 + 30*25.4]]); ok(r[0] && !r[1], 'a 24" range shows 20" away but not 30": ' + r);
+  const W2 = [800, 300, 'hostile:X'], one = await LOS({}, [Wb, W2], [[600, 300]]), both = await LOS({ watch: ['hostile:W', 'hostile:X'] }, [Wb, W2], [[600, 300]]);
+  ok(one[0] === false && both[0] === true, 'watching a second unit adds what it sees');
+  await LOS({}, [Wb], []);
+  const edge = await P(() => { const p = window.__planner; for (let y = 300; y < 1500; y += 2) if (p.isSeen(700, y)) return y; return -1; });
+  const B60 = [[Wb, [1000, 1400, 'friendly:B', 60]], [[700, edge - 10]]];
+  const c0 = await LOS({}, ...B60), c60 = await LOS({}, ...B60, 'friendly:B'), cOff = await LOS({ partial: false }, ...B60, 'friendly:B');
+  ok(edge > 0 && !c0[0] && c60[0] && !cOff[0], 'a spot 10 mm into the shadow is hidden for a centre point but seen for a selected 60 mm base: edge at y=' + edge + ' ' + [c0, c60, cOff]);
+  await LOS({ range: 18 }, [Wb], []); await pg.screenshot({ path: shots + '/sight-test.png' });
+  await pg.reload(); await pg.waitForTimeout(400);
+  const lo = await P(() => window.__planner.S.los);
+  ok(lo.on && lo.range === 18 && lo.watch.join() === 'hostile:W', 'sight settings survive a reload: ' + JSON.stringify(lo));
+  const old = await P(() => { const p = window.__planner; p.applyState({ bases: [] }); return p.S.los; });
+  ok(JSON.stringify(old) === '{"on":false,"watch":[],"range":0,"areas":true,"partial":true}', 'an old board without sight settings loads with the defaults');
   await cx.close();
   const c2 = await br.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, deviceScaleFactor: 2 }); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('phone ' + e.message));
   await p2.goto('file://' + dir + '/index.html'); await p2.waitForTimeout(400); await p2.screenshot({ path: shots + '/phone.png' });
@@ -70,5 +111,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   ok(await p2.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no sideways scroll on phone');
   await p2.keyboard.press('Escape'); await p2.tap('#btn-help'); await p2.waitForTimeout(150); await p2.screenshot({ path: shots + '/phone-help.png' });
   ok(await p2.evaluate(() => { const r = document.querySelector('#help .pk').getBoundingClientRect(); return document.getElementById('help').open && r.left >= 0 && r.right <= innerWidth; }), 'help fits the phone screen');
+  await p2.tap('#help-close'); await p2.tap('#btn-sight'); await p2.waitForTimeout(300); await p2.screenshot({ path: shots + '/phone-sight.png' });
+  ok(await p2.evaluate(() => window.__planner.S.los.on && document.documentElement.scrollWidth <= innerWidth), 'Sight works on the phone with no sideways scroll');
   ok(!errs.length, 'no page errors ' + JSON.stringify(errs)); await br.close();
 })();

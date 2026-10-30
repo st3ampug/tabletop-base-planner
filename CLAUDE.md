@@ -12,7 +12,7 @@ The owner is a software QA specialist. Prefer small, reviewable commits, tests f
 python3 tools/build.py .         # rebuilds index.html (the live page) from src/ and data/
 python3 tools/build.py build     # same, into build/ (git-ignored), for testing
 node tests/test-import.js build  # army-list import against tests/fixtures/*.txt
-node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards, help (24 checks)
+node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards, help, line of sight (38 checks)
 ```
 
 - **Tests:** Playwright, run against `build/index.html` via `file://`. Install Playwright locally (`npm i -D playwright`) and point it at your Chromium. The tests currently pass `executablePath: '/opt/pw-browsers/chromium'` with a fallback.
@@ -33,12 +33,14 @@ node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency
 | `maps.js` | Expands the compact layout data into `MAPS[id]` (terrain polygons in mm, zones, objectives) |
 | `state.js` | `S` (the board state), `snapshot()`, `applyState()`, undo stack, `T` (live terrain for the current map), board storage |
 | `geometry.js` | Point-in-polygon, ellipse and hull collision, `blockers()`, `tryMove()`, `moveGroup()`, `findSpot()`, `edgeDist()`, `cohIssues()`, `ringPath()` |
+| `sight.js` | Line-of-sight mask: shadows from watched models' base edges, cached per position, base-size fitting, the red overlay; `isSeen(x, y)` |
 | `render.js` | `fit()`, `draw()` (one function draws everything), tags, the status line |
 | `ui/pointer.js` | Pointer events: drag bases or units, pan, pinch zoom, ruler, terrain dragging |
 | `ui/actions.js` | Select, add, remove, duplicate and rotate bases; terrain edits |
 | `ui/panel.js` | The side panel: inspector, size chips, layout picker and thumbnails, rules settings |
 | `armies.js` | Roster format parser `parseRoster()`, deployment into zones `deployUnit()` / `deployAll()`, swap sides, the Armies tab |
 | `import.js` | `readList()`: parses Warhammer-app exports and plain text lists and fuzzy-matches units to the catalogue; the import preview |
+| `ui/watch.js` | The Sight button, watch toggles (`S.los.watch`) and the line-of-sight settings |
 | `ui/saveload.js` | Board text export (`exportText()` adds a read-only `table` block), import |
 | `ui/boards.js` | Named boards in `localStorage` |
 | `ui/keyboard.js` | Shortcuts |
@@ -77,4 +79,4 @@ Rules for the modules:
 ## Open work
 
 - `docs/spec-rounds-and-replay.md`: game rounds, wounds, casualties and replay. This is the next feature.
-- Known limits: no line of sight, terrain height, engagement range or objective control.
+- Known limits: no terrain height (line of sight is top-down), engagement range or objective control.
