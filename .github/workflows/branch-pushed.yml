@@ -1,0 +1,13 @@
+name: Branch pushed
+# Starts the Pages workflow (which runs from main) so it rebuilds the preview of the pushed branch.
+on:
+  push:
+    branches-ignore: [main]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Pages will rebuild the preview of ${{ github.ref_name }}"

@@ -1,6 +1,8 @@
 # Tabletop Base Planner: guide for coding agents
 
-A static web page for planning Warhammer 40,000 (11th edition) deployments with true-size bases on the Battlemaster terrain layouts. It's live at https://st3ampug.github.io/tabletop-base-planner/ and served by GitHub Pages from the root of `main`, so **whatever is pushed to `main` goes live within a minute or two.**
+A static web page for planning Warhammer 40,000 (11th edition) deployments with true-size bases on the Battlemaster terrain layouts. It's live at https://st3ampug.github.io/tabletop-base-planner/ and deployed to GitHub Pages by the `Pages` workflow, so **whatever is pushed to `main` goes live within a few minutes.**
+
+Every other branch pushed to GitHub gets a preview at `https://st3ampug.github.io/tabletop-base-planner/preview/<branch>/` (slashes in the name become dashes), listed at `/preview/`. Use previews to try changes without touching the live page. `tools/build_site.sh` builds the whole site; `.github/workflows/branch-pushed.yml` exists only to start the `Pages` workflow when a branch other than `main` is pushed, because only `main` may deploy.
 
 The owner is a software QA specialist. Prefer small, reviewable commits, tests for new behaviour, and plain explanations of trade-offs.
 
@@ -14,7 +16,7 @@ node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency
 ```
 
 - **Tests:** Playwright, run against `build/index.html` via `file://`. Install Playwright locally (`npm i -D playwright`) and point it at your Chromium. The tests currently pass `executablePath: '/opt/pw-browsers/chromium'` with a fallback.
-- **Before committing:** always run both test files, and commit the rebuilt `index.html` together with the source change. `index.html` is a build output, but it's committed because Pages serves it.
+- **Before committing:** always run both test files, and commit the rebuilt `index.html` together with the source change. `index.html` is a build output; the workflow rebuilds it, but keep it committed so the repo still holds a working page that can be downloaded and opened offline.
 - **Screenshots:** `tests/test-ui.js` writes them to `build/shots/`. Look at them after visual changes (desktop 1280×900 and phone 390×844).
 
 ## How the code is organised

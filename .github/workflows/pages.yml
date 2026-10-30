@@ -1,0 +1,41 @@
+name: Pages
+# Builds main into the site root and every other branch into /preview/<branch>/, then deploys to GitHub Pages.
+# Runs from main only, because only main may deploy to the github-pages environment. Pushes to other
+# branches reach it through the "Branch pushed" workflow; deleting a branch rebuilds without its preview.
+on:
+  push:
+    branches: [main]
+  delete:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Branch pushed]
+    types: [completed]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Build main and the branch previews
+        run: bash tools/build_site.sh site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
