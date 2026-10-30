@@ -11,6 +11,10 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   ok(await P(() => window.__planner.S.bases.length) === 95, 'fresh board deploys both example armies');
   ok(await P(() => window.__planner.BX.order.length) === 1, 'one board exists');
   // --- picker
+  // --- help
+  await pg.click('#btn-help'); await pg.waitForTimeout(150); await pg.screenshot({ path: shots + '/help.png' });
+  ok(await P(() => document.getElementById('help').open && document.getElementById('help').textContent.includes('Through a game')), 'help opens with usage and game steps');
+  await pg.click('#help-close'); ok(await P(() => !document.getElementById('help').open), 'help closes');
   await pg.click('#map-btn'); await pg.waitForTimeout(150); await pg.screenshot({ path: shots + '/picker.png' });
   await pg.click('#pk-PTF-REC'); await pg.click('#pk-v-2');
   ok(await P(() => window.__planner.S.mapId) === 'bm-purge-vs-recon-02', 'picker chooses PTF v REC 2');
@@ -64,5 +68,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   await p2.goto('file://' + dir + '/index.html'); await p2.waitForTimeout(400); await p2.screenshot({ path: shots + '/phone.png' });
   await p2.tap('#map-btn'); await p2.waitForTimeout(150); await p2.screenshot({ path: shots + '/phone-picker.png' });
   ok(await p2.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no sideways scroll on phone');
+  await p2.keyboard.press('Escape'); await p2.tap('#btn-help'); await p2.waitForTimeout(150); await p2.screenshot({ path: shots + '/phone-help.png' });
+  ok(await p2.evaluate(() => { const r = document.querySelector('#help .pk').getBoundingClientRect(); return document.getElementById('help').open && r.left >= 0 && r.right <= innerWidth; }), 'help fits the phone screen');
   ok(!errs.length, 'no page errors ' + JSON.stringify(errs)); await br.close();
 })();

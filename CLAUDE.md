@@ -10,7 +10,7 @@ The owner is a software QA specialist. Prefer small, reviewable commits, tests f
 python3 tools/build.py .         # rebuilds index.html (the live page) from src/ and data/
 python3 tools/build.py build     # same, into build/ (git-ignored), for testing
 node tests/test-import.js build  # army-list import against tests/fixtures/*.txt
-node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards (21 checks)
+node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards, help (24 checks)
 ```
 
 - **Tests:** Playwright, run against `build/index.html` via `file://`. Install Playwright locally (`npm i -D playwright`) and point it at your Chromium. The tests currently pass `executablePath: '/opt/pw-browsers/chromium'` with a fallback.
@@ -40,6 +40,7 @@ node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency
 | `ui/saveload.js` | Board text export (`exportText()` adds a read-only `table` block), import |
 | `ui/boards.js` | Named boards in `localStorage` |
 | `ui/keyboard.js` | Shortcuts |
+| `ui/help.js` | The Help dialog (its text is in the markup in `app.src.html`; keep it in step with features) |
 | `main.js` | Start-up, migration of older saves, `window.__planner` |
 
 Rules for the modules:

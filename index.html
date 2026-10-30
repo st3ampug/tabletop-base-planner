@@ -84,8 +84,8 @@ details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 .armyhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mapbtn{flex:1;min-width:0;max-width:440px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .mapbtn::after{content:" ▾";color:var(--muted)}
-dialog#picker{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);padding:0;width:min(680px,calc(100vw - 24px));max-height:calc(100vh - 24px)}
-dialog#picker::backdrop{background:rgba(0,0,0,.45)}
+dialog#picker,dialog#help{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);padding:0;width:min(680px,calc(100vw - 24px));max-height:calc(100vh - 24px)}
+dialog#picker::backdrop,dialog#help::backdrop{background:rgba(0,0,0,.45)}
 .pk{display:flex;flex-direction:column;gap:12px;padding:14px 16px 16px;overflow:auto;max-height:calc(100vh - 26px)}
 .pkhead{display:flex;align-items:center;gap:8px}
 .pkhead h2{margin:0;font-size:16px;flex:1}
@@ -101,6 +101,12 @@ dialog#picker::backdrop{background:rgba(0,0,0,.45)}
 .var:hover,.var.cur{border-color:var(--accent)}
 .var canvas{position:static;width:100%;max-width:120px;height:auto;aspect-ratio:44/60;border-radius:3px;cursor:pointer}
 .legend{font-size:11.5px;color:var(--muted);margin:0}
+.help > h2{margin:10px 0 -4px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.help h3{margin:2px 0 -4px;font-size:13px}
+.nar{display:none}
+.help ul,.help ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px}
+.help p,.help li{font-size:13px;margin:0}
+.help kbd{font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--chip)}
 .ringchips{display:flex;flex-wrap:wrap;gap:6px}
 .ringchips .chip{min-height:32px;padding:5px 10px}
 .ringchips .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
@@ -126,6 +132,9 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
   .bar h1{display:none}
   .bar{padding:6px 16px}
   .bar select{max-width:none}
+  .bar .nar{display:inline}
+  .bar .wid{display:none}
+  #btn-help{padding:7px 12px}
   .work{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
   .panel{border-left:0;border-top:1px solid var(--line);max-height:44vh}
   .tabs{display:flex;border-bottom:1px solid var(--line)}
@@ -147,7 +156,50 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
   <button class="btn" id="btn-ruler" aria-pressed="false" title="Drag on the board to measure">Ruler</button>
   <button class="btn" id="btn-fit" title="Fit the whole board on screen">Fit</button>
   <button class="btn" id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
+  <button class="btn" id="btn-help" aria-haspopup="dialog" title="How to use the planner" aria-label="Help"><span class="wid">Help</span><span class="nar" aria-hidden="true">?</span></button>
 </header>
+
+<dialog id="help" aria-labelledby="help-title">
+  <div class="pk help">
+    <div class="pkhead"><h2 id="help-title">How to use the planner</h2><button class="btn" id="help-close">Close</button></div>
+    <p>Plan deployments and moves with true-size bases on the 11th-edition layouts. Everything is measured in inches, base edge to base edge, and saves itself in this browser.</p>
+
+    <h2>Using the planner</h2>
+    <h3>The board</h3>
+    <ul>
+      <li><b>Layout:</b> tap the layout name at the top. Pick your Force Disposition (row) against your opponent's (column), then one of the variants.</li>
+      <li><b>Moving:</b> drag a base to move it. The distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
+      <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
+      <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
+      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency.</li>
+    </ul>
+    <h3>The tabs</h3>
+    <ul>
+      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, and edit the roster by hand.</li>
+      <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", or any distance), duplicate or remove.</li>
+      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list.</li>
+      <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
+      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, and the coherency distance. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
+      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file.</li>
+    </ul>
+    <h3>Keys</h3>
+    <ul>
+      <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · arrow keys nudge the selection 1 mm, with <kbd>Shift</kbd> 1" · <kbd>R</kbd> turn 15° · <kbd>D</kbd> duplicate · <kbd>Delete</kbd> remove</li>
+    </ul>
+
+    <h2>Through a game</h2>
+    <ol>
+      <li><b>Pick the layout.</b> Agree Force Dispositions with your opponent and choose the matching layout.</li>
+      <li><b>Load both armies.</b> Import your list as friendly and your opponent's as hostile in the Armies tab. Each army deploys into its zone straight away.</li>
+      <li><b>Set the sides.</b> The attacker deploys in the red zone at the top. If you're on the wrong side, press <b>Swap sides</b>.</li>
+      <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
+      <li><b>Keep the deployment.</b> In the Save tab, press <b>Duplicate this board</b> and rename the copy, e.g. "Deployment", so you can come back to it.</li>
+      <li><b>Play each turn.</b> Move units with the distance readout and the ruler, check ranges with rings, and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
+      <li><b>Review.</b> Copy any board as text from the Save tab. It includes the table layout, so an analysis AI can read the positions.</li>
+    </ol>
+    <p class="legend">Recording a game round by round, with wounds and replay, is planned. Until then, a board per turn keeps the history.</p>
+  </div>
+</dialog>
 
 <dialog id="picker" aria-labelledby="pk-title">
   <div class="pk">
@@ -1424,6 +1476,12 @@ window.addEventListener('keydown', e => {
   else if (e.key.toLowerCase() === 'r' && (b.w !== b.h || isHull(b))){ pushUndo(); rotateSel(b.rot + 15); renderInspector(); }
   else if (e.key.toLowerCase() === 'd'){ dupSel(); }
 });
+
+// src/ui/help.js
+/* ---------- help ---------- */
+$('btn-help').addEventListener('click', () => { try { $('help').showModal(); } catch(e){ $('help').setAttribute('open', ''); } });
+$('help-close').addEventListener('click', () => $('help').close());
+$('help').addEventListener('click', e => { if (e.target === $('help')) $('help').close(); });
 
 // src/main.js
 /* ---------- boot ---------- */
