@@ -1,0 +1,88 @@
+# Tabletop Base Planner
+
+A web page for planning Warhammer 40,000 (11th edition) deployments with true-size bases on all 45 Battlemaster terrain layouts.
+
+**Use it online** at the GitHub Pages address for this repository, or download `index.html` and open it in any browser. It needs no server, account or internet connection.
+
+## Features
+
+- **Army lists:** paste a list exported from the Warhammer app or written as plain text. Units are matched to the 40kdc unit data, which gives model counts and base sizes. Leaders join their bodyguard as one unit. You check the result before using it, and the planner remembers sizes you enter for vehicles with no base size in the data.
+- **Layouts:** a 5 × 5 Force Disposition grid (your disposition is the row, your opponent's the column) with previews of the three variants for each pairing. Each layout has its deployment zones, objectives, terrain areas and walls.
+- **Deploying:** a friendly and a hostile army. "Deploy all" places a whole army inside its zone, clear of walls and other bases. "Swap sides" turns both armies to the opposite zones.
+- **Moving:** drag a whole unit or a single model, with the distance moved shown in inches. Rectangular hulls for vehicles without a base. A separate ruler.
+- **Range rings:** select a unit and show a ring at 1", 2", 3", 6", 9", 12" or any other distance, measured from every base edge.
+- **Coherency:** models out of coherency are outlined in orange. The distance, the size at which a unit needs two neighbours, and the "one group" rule are settings in the Rules tab.
+- **Collision:** each terrain piece either blocks bases or lets them enter. A blocked move can stop at the obstacle or be allowed and flagged in red.
+- **Terrain editing:** move, turn, add, remove and rename pieces. An area carries its walls with it.
+- **Boards:** keep several named boards, each with its own layout, armies and positions, saved in the browser. Copy a board as text to move it to another device or hand it to an analysis tool.
+
+## Roster format
+
+Each army's roster can also be edited by hand, one unit per line: `LABEL | Unit name | count @ size [base label], …`
+
+```
+LUC | Lucius + Flawless Blades | 1 @ 50 LUC, 6 @ 40 FB
+MF1 | Maulerfiend | 1 @ 120x92 MF1
+RH  | Chaos Rhino | 1 @ hull 117x74 RH
+```
+
+Sizes are in mm: `40` is a round base, `120x92` an oval, `hull 117x74` a vehicle hull.
+
+## Board text format (Save tab → Copy board)
+
+Everything is in millimetres. The origin is the top-left corner and y increases downwards. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red attacker zone at the top.
+
+- `mapId`, `mode` (`stop` or `flag`), `baseCollide`, `unitMove`, `ring`, `coh` (coherency settings)
+- `armies.friendly` / `armies.hostile`: `name`, `colour`, `side` (`blue` or `red`), `roster`
+- `bases[]`: `id`, `w`, `h` (w ≥ h), `x`, `y` (centre), `rot` (degrees clockwise), `shape` (`hull` for vehicles), `label`, `army`, `u` (unit key, e.g. `friendly:LUC`)
+- `table` (read-only, ignored when loading): `zones[]`, `objectives[]` (`role`, `owner`, `x`, `y`) and `terrain[]` (`kind` `area` or `wall`, `collision`, `poly`)
+
+`docs/agent-briefing.md` is a prompt that explains this format to an AI assistant analysing a matchup.
+
+## Check before relying on it
+
+- **Rules:** coherency defaults are the 10th-edition values (2", two neighbours for units of 7 or more). Set them to your 11th-edition card.
+- **Layout data:** marked "pre-launch provisional" in its source. Compare a layout with the official card or mission app.
+- **Base sizes:** vehicle hulls have no size in the data, so you enter them. The data puts Impulsors on 100 mm round bases and Lucius on 50 mm.
+- **Not modelled:** line of sight, terrain height, engagement range and objective control.
+
+## Project layout
+
+| Path | What it is |
+|---|---|
+| `index.html` | The built planner, served by GitHub Pages |
+| `src/app.src.html` | Page source, with placeholders where the data goes |
+| `data/layouts-40kdc.json` | The 45 layouts, terrain shapes and deployment zones |
+| `data/units-40kdc.json` | Unit names, model counts and base sizes for list import |
+| `tools/build.py` | Builds `index.html` from `src` and `data` |
+| `tools/dc_export.py`, `tools/units_export.py` | Regenerate the data files from 40kdc-data |
+| `tests/` | Browser tests (Playwright) and example army lists |
+| `examples/` | A saved board |
+
+To rebuild after changing the source:
+
+```
+python3 tools/build.py .
+```
+
+To refresh the data from 40kdc-data:
+
+```
+git clone --depth 1 https://github.com/wn-mitch/40kdc-data
+python3 tools/dc_export.py tools 40kdc-data build              # writes build/dc-data.json; copy it to data/layouts-40kdc.json
+python3 tools/units_export.py 40kdc-data data/units-40kdc.json
+```
+
+To run the tests:
+
+```
+python3 tools/build.py build
+node tests/test-import.js build
+node tests/test-ui.js build
+```
+
+## Credits
+
+Terrain layouts, deployment zones, unit model counts and base sizes come from [40kdc-data](https://github.com/wn-mitch/40kdc-data) by Alpaca Software and the 40kdc community, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (see `data/LICENSE-DATA-40kdc.txt`). The layouts were imported there from Battlemaster. Changes made here: outlines simplified, board turned to portrait with the attacker at the top, wall lines thickened to 0.5" solids, one misplaced generator corrected, and the data reduced to what the planner uses.
+
+This is an unofficial fan tool, not affiliated with or endorsed by Games Workshop. Warhammer 40,000 is a trademark of Games Workshop Ltd.

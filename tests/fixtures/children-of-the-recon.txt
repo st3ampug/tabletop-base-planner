@@ -1,0 +1,122 @@
+Children of the Recon  (1995 points)
+
+Emperor’s Children
+Frenzied Host and Peerless Bladesmen (3 Detachment Points)
+Reconnaissance
+Strike Force (2000 points)
+ERRORS
+  • Invalid wargear selected for Tormentor model in Tormentors.
+  • Invalid wargear selected for Tormentor model in Tormentors.
+
+Attached Units
+Attached Unit 1
+
+Lucius the Eternal (130 points)
+• Attached as: Leader (Character)
+  • Warlord
+  • 1x Blade of the Laer
+    1x Lash of Torment
+
+Flawless Blades (190 points)
+• Attached as: Bodyguard
+  • 6x Flawless Blade
+    • 6x Blissblade
+      6x Bolt pistol
+
+Attached Unit 2
+
+Lord Exultant (115 points)
+• Attached as: Leader (Character)
+  • 1x Bolt Pistol
+    1x Close combat weapon
+    1x Phoenix power spear
+    1x Rapture lash
+  • Enhancement: Euphoric Crown
+
+Infractors (175 points)
+• Attached as: Bodyguard (Battleline)
+  • 1x Obsessionist
+    • 1x Plasma pistol
+      1x Rapture lash
+  • 9x Infractor
+    • 9x Bolt pistol
+      9x Duelling sabre
+      1x Icon of Excess
+
+Attached Unit 3
+
+Sorcerer (55 points)
+• Attached as: Leader (Character)
+  • 1x Agonising Energies
+    1x Bolt pistol
+    1x Force weapon
+
+Tormentors (85 points)
+• Attached as: Bodyguard (Battleline)
+  • 1x Obsessionist
+    • 1x Plasma pistol
+      1x Rapture lash
+  • 4x Tormentor
+    • 2x Boltgun
+      4x Close Combat Weapon
+      1x Icon of Excess
+      1x Meltagun
+      1x Plasma gun
+
+
+CHARACTERS
+
+Daemon Prince of Slaanesh with Wings (220 points)
+  • 1x Hellforged weapons
+    1x Infernal cannon
+  • Enhancement: Faultless Opportunist
+
+Daemon Prince of Slaanesh with Wings (250 points)
+  • 1x Hellforged weapons
+    1x Infernal cannon
+  • Enhancement: Distortion
+
+
+BATTLELINE
+
+Tormentors (85 points)
+  • 1x Obsessionist
+    • 1x Plasma pistol
+      1x Rapture lash
+  • 4x Tormentor
+    • 2x Boltgun
+      4x Close Combat Weapon
+      1x Icon of Excess
+      1x Meltagun
+      1x Plasma gun
+
+
+DEDICATED TRANSPORTS
+
+Chaos Rhino (70 points)
+  • 1x Armoured tracks
+    2x Combi-bolter
+    1x Havoc launcher
+
+
+OTHER DATASHEETS
+
+Flawless Blades (190 points)
+  • 6x Flawless Blade
+    • 6x Blissblade
+      6x Bolt pistol
+
+Flawless Blades (190 points)
+  • 6x Flawless Blade
+    • 6x Blissblade
+      6x Bolt pistol
+
+Maulerfiend (120 points)
+  • 1x Lasher tendrils
+    1x Maulerfiend fists
+
+Maulerfiend (120 points)
+  • 1x Lasher tendrils
+    1x Maulerfiend fists
+
+Exported with App Version: v2.7.1 (146), Data Version: v972
