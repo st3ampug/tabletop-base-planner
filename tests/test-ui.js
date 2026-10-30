@@ -53,6 +53,14 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   const pt = await P(() => { const p = window.__planner, b = p.S.bases.find(b => b.u === 'hostile:AT'), r = document.getElementById('cv').getBoundingClientRect(); return [r.left + b.x*p.view.s + p.view.ox, r.top + b.y*p.view.s + p.view.oy]; });
   await pg.mouse.click(pt[0], pt[1]); await pg.click('#ring-9'); ok(await P(() => window.__planner.S.ring) === 9, 'ring set to 9"');
   await pg.screenshot({ path: shots + '/ring.png' });
+  // --- Find selects the unit and leaves the view alone unless the unit is off screen
+  await P(() => document.getElementById('army-hostile').click()); const v0 = await P(() => JSON.stringify(window.__planner.view));
+  await pg.locator('.unit').filter({ hasText: 'Redemptor' }).getByText('Find').click();
+  ok(await P(() => JSON.stringify(window.__planner.view)) === v0 && (await pg.textContent('#inspector')).includes('Redemptor'), 'Find selects the unit without moving the board');
+  await P(() => { const v = window.__planner.view; v.s *= 4; v.ox = -3000; v.oy = -3000; });
+  await pg.locator('.unit').filter({ hasText: 'Redemptor' }).getByText('Find').click();
+  ok(await P(() => { const p = window.__planner, v = p.view, b = p.S.bases.find(b => b.u === 'hostile:RED'), c = document.getElementById('cv').getBoundingClientRect(), x = b.x*v.s + v.ox, y = b.y*v.s + v.oy; return x > 0 && x < c.width && y > 0 && y < c.height; }), 'Find pans to a unit that is off screen');
+  await pg.click('#btn-fit');
   // --- boards
   await pg.click('.tabs button[data-tab="save"]').catch(() => {}); await pg.click('#bd-dup');
   ok(await P(() => window.__planner.BX.order.length) === 2, 'duplicate creates a second board');

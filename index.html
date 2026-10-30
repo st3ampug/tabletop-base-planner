@@ -1339,8 +1339,10 @@ $('dm-model').addEventListener('click', () => setUnitMove(false));
 function focusUnit(u){
   const G = S.bases.filter(b => b.u === u); if (!G.length) return;
   select({ type:'base', b: G[0] }, true);
-  const xs = G.map(b => b.x), ys = G.map(b => b.y), cx = (Math.min(...xs) + Math.max(...xs))/2, cy = (Math.min(...ys) + Math.max(...ys))/2;
-  view.ox = cssW/2 - cx*view.s; view.oy = cssH/2 - cy*view.s; dirty();
+  // Leave the view alone when the whole unit is already on screen, which it usually is with the board fitted.
+  const r = b => Math.max(b.w, b.h)/2, x0 = Math.min(...G.map(b => b.x - r(b))), x1 = Math.max(...G.map(b => b.x + r(b))), y0 = Math.min(...G.map(b => b.y - r(b))), y1 = Math.max(...G.map(b => b.y + r(b)));
+  const tl = s2w(0, 0), br = s2w(cssW, cssH); if (x0 >= tl[0] && x1 <= br[0] && y0 >= tl[1] && y1 <= br[1]) return;
+  view.ox = cssW/2 - (x0 + x1)/2*view.s; view.oy = cssH/2 - (y0 + y1)/2*view.s; dirty();
 }
 function renderArmies(){
   const k = armyView, army = S.armies[k], box = $('army-box'); box.textContent = '';
