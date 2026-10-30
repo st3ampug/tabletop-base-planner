@@ -51,10 +51,11 @@ Everything is in millimetres. The origin is the top-left corner and y increases 
 | Path | What it is |
 |---|---|
 | `index.html` | The built planner, served by GitHub Pages |
-| `src/app.src.html` | Page source, with placeholders where the data goes |
+| `src/app.src.html` | Page styles and markup, with placeholders where the script and data go |
+| `src/*.js`, `src/ui/*.js` | The script, as modules that the build joins into one file |
 | `data/layouts-40kdc.json` | The 45 layouts, terrain shapes and deployment zones |
 | `data/units-40kdc.json` | Unit names, model counts and base sizes for list import |
-| `tools/build.py` | Builds `index.html` from `src` and `data` |
+| `tools/build.py` | Builds the single-file `index.html` from `src` and `data` |
 | `tools/dc_export.py`, `tools/units_export.py` | Regenerate the data files from 40kdc-data |
 | `tests/` | Browser tests (Playwright) and example army lists |
 | `examples/` | A saved board |

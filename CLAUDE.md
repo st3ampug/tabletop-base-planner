@@ -19,31 +19,37 @@ node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency
 
 ## How the code is organised
 
-All the code is in one file, `src/app.src.html` (about 1,400 lines): CSS, markup and one script with no dependencies or framework. `tools/build.py` replaces two placeholders with JSON:
+`src/app.src.html` holds the CSS and markup. The script is split into modules in `src/` with no dependencies or framework. `tools/build.py` makes one self-contained page by replacing three placeholders:
 
+- `/*MODULES*/` ← the modules, joined in the `MODULES` order listed in `build.py` with their `import` and `export` lines removed, so they share one script scope
 - `/*MAPS*/…/*END*/` ← `data/layouts-40kdc.json` (layouts, terrain shapes, deployment zones)
 - `/*UNITS*/…/*ENDUNITS*/` ← `data/units-40kdc.json` (unit names, model counts, base sizes)
 
-Sections of the script, in order, marked `/* ---------- name ---------- */`:
-
-| Section | What it holds |
+| Module | What it holds |
 |---|---|
-| maps | Expands the compact layout data into `MAPS[id]` (terrain polygons in mm, zones, objectives) |
-| state | `S` (the board state), `snapshot()`, `applyState()`, undo stack, `T` (live terrain for the current map), board storage |
-| geometry | Point-in-polygon, ellipse and hull collision, `blockers()`, `tryMove()`, `moveGroup()`, `findSpot()`, `edgeDist()`, `cohIssues()`, `ringPath()` |
-| canvas | `fit()`, `draw()` (one function draws everything), thumbnails, tags |
-| pointer input | Pointer events: drag bases or units, pan, pinch zoom, ruler, terrain dragging |
-| actions | Select, add, remove, duplicate and rotate bases; terrain edits |
-| panel | The side panel: inspector, size chips, layout picker, rules settings |
-| armies | Roster format parser `parseRoster()`, deployment into zones `deployUnit()` / `deployAll()`, swap sides |
-| army list import | `readList()`: parses Warhammer-app exports and plain text lists and fuzzy-matches units to the catalogue |
-| save / load | Board text export (`exportText()` adds a read-only `table` block), import |
-| boards | Named boards in `localStorage` |
-| keyboard, boot | Shortcuts; start-up and migration of older saves |
+| `core.js` | Constants (`IN`, base sizes, colours), the injected data `DC` and `CAT`, `$()` |
+| `maps.js` | Expands the compact layout data into `MAPS[id]` (terrain polygons in mm, zones, objectives) |
+| `state.js` | `S` (the board state), `snapshot()`, `applyState()`, undo stack, `T` (live terrain for the current map), board storage |
+| `geometry.js` | Point-in-polygon, ellipse and hull collision, `blockers()`, `tryMove()`, `moveGroup()`, `findSpot()`, `edgeDist()`, `cohIssues()`, `ringPath()` |
+| `render.js` | `fit()`, `draw()` (one function draws everything), tags, the status line |
+| `ui/pointer.js` | Pointer events: drag bases or units, pan, pinch zoom, ruler, terrain dragging |
+| `ui/actions.js` | Select, add, remove, duplicate and rotate bases; terrain edits |
+| `ui/panel.js` | The side panel: inspector, size chips, layout picker and thumbnails, rules settings |
+| `armies.js` | Roster format parser `parseRoster()`, deployment into zones `deployUnit()` / `deployAll()`, swap sides, the Armies tab |
+| `import.js` | `readList()`: parses Warhammer-app exports and plain text lists and fuzzy-matches units to the catalogue; the import preview |
+| `ui/saveload.js` | Board text export (`exportText()` adds a read-only `table` block), import |
+| `ui/boards.js` | Named boards in `localStorage` |
+| `ui/keyboard.js` | Shortcuts |
+| `main.js` | Start-up, migration of older saves, `window.__planner` |
+
+Rules for the modules:
+
+- **Imports:** write `import { a, b } from './x.js';` at the top and one `export { … };` list at the bottom. `build.py` stops if an import names something its module doesn't export, or if a `.js` file in `src/` isn't in `MODULES`.
+- **Assigning shared values:** a module can read another module's `let` but must not assign it. Assign it in the module that declares it, or call a setter (`setM`, `setT`, `setSel`, `setBX`, `setArmyView`, `clearLiveMsg`).
+- **Order:** the modules depend on each other in a cycle (state calls the panel to re-render, the panel calls state), which works because the build joins them into one scope and functions are hoisted. Code that runs while the script loads, such as `addEventListener` calls and top-level constants, relies on `MODULES` order. The modules don't load natively in a browser.
+- **Names:** every top-level name must be unique across all modules, because they share one scope after the build.
 
 `window.__planner` exposes state and functions for the tests. Keep it working, or update the tests with it.
-
-**Recommended first task before any big feature:** split the script into ES modules (`src/geometry.js`, `src/render.js`, `src/state.js`, `src/import.js`, `src/ui/*.js`) and have `build.py` inline them, so the deployed page stays one self-contained file. Keep the behaviour identical; the existing tests are the safety net.
 
 ## Conventions and decisions (don't change without asking)
 
