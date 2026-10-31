@@ -77,6 +77,78 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   ok(api.a && api.r.ok && api.r.label === 'Round 1 · Attacker (Stephen: Imperial Fists) · Charge' && api.last.note === 'charged' && api.last.vp.friendly === 3 && api.v.hostile === 5, 'planner.game, saveStep and setVP: ' + JSON.stringify(api.r));
   ok(api.again === false && api.wounds >= 1, 'startGame refuses while a game is open; units() reports wounds');
 
+  // --- casualties
+  await P(() => { const S = window.__planner.S; window.__planner.select({ type:'base', b: S.bases.find(b => b.label === 'LUC') }); });
+  await pg.click('#f-wound'); await pg.click('#f-wound');
+  ok(await pg.textContent('#f-wounds') === '4/6', 'two wounds off Lucius: ' + await pg.textContent('#f-wounds'));
+  await pg.click('#f-heal'); ok(await pg.textContent('#f-wounds') === '5/6', '+1 gives a wound back');
+  const luc = await P(() => window.__planner.S.bases.find(b => b.label === 'LUC').id);
+  await pg.click('#f-destroy');
+  const cas = await P(id => { const S = window.__planner.S; return { onT: S.bases.some(b => b.id === id), dead: S.dead.some(b => b.id === id), sel: !!window.__planner.S && document.getElementById('f-wounds') === null }; }, luc);
+  ok(!cas.onT && cas.dead, 'Destroy takes the model off the table into the destroyed list');
+  await pg.click('#btn-undo'); ok(await P(id => window.__planner.S.bases.some(b => b.id === id && b.wounds === 5), luc), 'undo brings the model back with its wounds');
+  await P(() => { const P = window.planner; P.destroy('hostile:RV1'); });
+  const rv = await P(() => window.planner.units('hostile').find(u => u.u === 'hostile:RV1'));
+  ok(rv.where === 'destroyed' && rv.destroyed === 5, 'units() reports a destroyed unit');
+  const sv = await P(() => window.planner.saveStep());
+  const rec = await P(() => { const p = window.__planner, g = p.S.games[0], at = p.resolveStep(g, g.steps.length - 1), ids = Object.keys(g.roster).filter(id => g.roster[id].u === 'hostile:RV1'); return ids.every(id => at[id][4] === 'destroyed' && at[id][0] > 0); });
+  ok(sv.ok && rec, 'a saved step records the destroyed unit where it fell');
+  await pg.click('.tabs button[data-tab="army"]').catch(() => {}); await P(() => { const b = document.getElementById('army-hostile'); b.click(); });
+  const nd = await pg.locator('.unit.dead').count(); ok(nd === 2, 'the Armies list marks destroyed units (Incursors and Reivers): ' + nd + ' ' + await P(() => [...document.querySelectorAll('.unit .tag')].map(t => t.textContent).join(',')));
+  await P(() => window.planner.restore('hostile:RV1')); ok(await P(() => window.__planner.S.bases.filter(b => b.u === 'hostile:RV1').length) === 5, 'Restore brings the unit back');
+  await P(() => window.planner.destroy('hostile:RV1'));
+
+  // --- replay
+  const nSteps = await P(() => window.__planner.S.games[0].steps.length);
+  await pg.click('#rp-prev'); await pg.waitForTimeout(50);
+  ok(await P(() => document.getElementById('gamebar').classList.contains('replay')) && (await pg.textContent('#gb-of')) === 'step ' + (nSteps - 1) + ' of ' + (nSteps - 1), '◀ shows the last saved step: ' + await pg.textContent('#gb-of'));
+  await pg.click('#rp-prev'); await pg.click('#rp-prev');
+  const shown = await P(() => ({ live: window.__planner.S.bases.length, step: document.getElementById('gb-of').textContent }));
+  await P(() => { window.__planner.S.bases[0]._probe = 1; });
+  await pg.mouse.move(640, 450); await pg.mouse.down(); await pg.mouse.move(700, 480); await pg.mouse.up();
+  ok(await P(() => window.__planner.S.bases[0]._probe === 1 && !document.getElementById('f-wounds')), 'replay is read-only: dragging pans and selects nothing');
+  await pg.click('#rp-next'); await pg.waitForTimeout(900);
+  ok((await pg.textContent('#gb-of')).startsWith('step ' + (nSteps - 2)), '▶ moves on one step');
+  await pg.screenshot({ path: shots + '/replay.png' });
+  await pg.click('#game-steps .st >> nth=1'); ok((await pg.textContent('#gb-of')) === 'step 1 of ' + (nSteps - 1), 'tapping a step in the Game tab shows it');
+  ok(await pg.textContent('#vp-hostile') === '2' && await pg.locator('#vp-hostile-plus').count() === 0, 'a replayed step shows its own score, read-only');
+  await pg.click('#rp-play'); await pg.waitForTimeout(3200);
+  const pl = await pg.textContent('#gb-of'); ok(/^step ([3-9]|1\d)/.test(pl), 'play moves through the steps: ' + pl);
+  await pg.click('#rp-play'); await pg.click('#rp-live');
+  ok(!(await P(() => document.getElementById('gamebar').classList.contains('replay'))) && await pg.isVisible('#gb-save'), 'Back to game returns to the live board');
+
+  // --- correcting a step
+  const ed0 = await P(() => { const p = window.__planner, g = p.S.games[0], inc = Object.keys(g.roster).filter(id => g.roster[id].u === 'hostile:INC');
+    return { inc, s1: inc.map(id => p.resolveStep(g, 1)[id].slice(0, 2)), s2: inc.map(id => p.resolveStep(g, 2)[id].slice(0, 2)), last: inc.map(id => p.resolveStep(g, g.steps.length - 1)[id].slice(0, 2)), live: JSON.stringify(p.S.bases.map(b => [b.id, b.x, b.y])) }; });
+  await pg.click('#game-steps .st >> nth=1'); await pg.click('#rp-edit'); await pg.waitForTimeout(50);
+  ok(await P(() => document.getElementById('gamebar').classList.contains('editing') && !!window.__planner.S.editing), 'Edit this step puts the board at that step');
+  await pg.reload(); await pg.waitForTimeout(400);
+  ok(await P(() => !!window.__planner.S.editing) && await pg.isVisible('#ed-keep'), 'an edit in progress survives a reload');
+  await P(() => window.__planner.S.bases.filter(b => b.u === 'hostile:INC').forEach(b => { b.y += 50; }));
+  await pg.click('#vp-hostile-plus');
+  await pg.click('#ed-keep'); await pg.waitForTimeout(50);
+  const ed1 = await P(ids => { const p = window.__planner, g = p.S.games[0], R1 = p.resolveStep(g, 1), R2 = p.resolveStep(g, 2);
+    return { s1: ids.map(id => R1[id].slice(0, 2)), s2: ids.map(id => R2[id].slice(0, 2)), vp: g.steps[1].vp.hostile, live: JSON.stringify(p.S.bases.map(b => [b.id, b.x, b.y])), editing: !!p.S.editing }; }, ed0.inc);
+  ok(Math.abs(ed1.s1[0][1] - ed0.s1[0][1] - 50) < 0.2, 'the corrected step has the new position: ' + ed0.s1[0][1] + ' → ' + ed1.s1[0][1]);
+  ok(JSON.stringify(ed1.s2) === JSON.stringify(ed0.s2), 'with "later steps unchanged" the next step keeps its positions');
+  ok(ed1.vp === 3 && !ed1.editing && ed1.live === ed0.live, 'the step score is corrected and the live board comes back as it was');
+  const c3 = await P(ids => { const p = window.__planner, g = p.S.games[0]; return ids.map(id => p.resolveStep(g, 3)[id][1]); }, ed0.inc);
+  await pg.click('#game-steps .st >> nth=2'); await pg.click('#rp-edit');
+  await P(() => window.__planner.S.bases.filter(b => b.u === 'hostile:INC').forEach(b => { b.y += 25; })); await pg.click('#ed-carry');
+  const s3b = await P(ids => { const p = window.__planner, g = p.S.games[0]; return ids.map(id => p.resolveStep(g, 3)[id][1]); }, ed0.inc);
+  ok(Math.abs(s3b[0] - c3[0] - 25) < 0.2, '"carry forward" moves the unit in later steps that did not move it: ' + c3[0] + ' → ' + s3b[0]);
+  await pg.click('#game-steps .st >> nth=2'); await pg.click('#rp-edit'); await pg.click('#ed-cancel');
+  ok(await P(() => !window.__planner.S.editing) && await pg.isVisible('#gb-save'), 'Cancel leaves the step as it was');
+
+  // --- game export and import
+  await pg.click('#game-copy');
+  const gt = await pg.inputValue('#io'); const gobj = JSON.parse(gt);
+  ok(gobj.game && gobj.table && gobj.game.steps.length === nSteps, 'Copy game puts the game and the table in the text box (' + Math.round(gt.length/1024) + ' KB)');
+  await P(t => { window.__planner.applyState({ bases: [], v: 2 }); }, null);
+  await pg.fill('#io', gt); await pg.click('#io-load'); await pg.waitForTimeout(100);
+  const li = await P(() => { const S = window.__planner.S, g = S.games[0]; return { games: S.games.length, open: S.game === g.id, steps: g.steps.length, onT: S.bases.length, dead: S.dead.length, name: S.armies.hostile.name }; });
+  ok(li.games === 1 && li.open && li.steps === nSteps && li.onT > 80 && li.dead === 10 && li.name === 'Stephen: Imperial Fists', 'a copied game loads into an empty board, opened at its last step: ' + JSON.stringify(li));
+
   // --- a full game stays small: 50 more steps with every model moving each time
   const full = await P(() => { const p = window.__planner, S = p.S, g = S.games[0];
     let saved = 0, k = 0; for (;;){ k++; S.bases.forEach((b, i) => { b.x += ((i + k) % 3 - 1)*3.37; b.y += ((i*7 + k) % 5 - 2)*2.11; }); const r = window.planner.saveStep(); if (!r.ok) break; saved++; }
@@ -101,7 +173,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   await p2.screenshot({ path: shots + '/phone-game.png' });
   const ph = await p2.evaluate(() => ({ sw: document.documentElement.scrollWidth, bar: document.getElementById('gamebar').getBoundingClientRect(), save: document.getElementById('gb-save').getBoundingClientRect(), steps: window.__planner.S.games[0].steps.length,
     tabs: [...document.querySelectorAll('.tabs button')].every(b => b.scrollWidth <= b.clientWidth + 1) }));
-  ok(ph.sw <= 390 && ph.save.right <= 390 && ph.bar.height < 100 && ph.steps === 2, 'phone: game bar fits and Save step works: ' + JSON.stringify({ sw: ph.sw, barH: Math.round(ph.bar.height), steps: ph.steps }));
+  ok(ph.sw <= 390 && ph.save.right <= 390 && ph.bar.height < 120 && ph.steps === 2, 'phone: game bar fits and Save step works: ' + JSON.stringify({ sw: ph.sw, barH: Math.round(ph.bar.height), steps: ph.steps }));
   ok(ph.tabs, 'phone: all seven tab names fit');
   ok(errs.length === 0, 'no phone errors ' + JSON.stringify(errs));
   await br.close();

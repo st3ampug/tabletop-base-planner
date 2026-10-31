@@ -54,7 +54,7 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 - If every base has a size, it replaces that army's roster and deploys it into its zone. It returns `{ ok: true, units, faction, notInZone }`; `notInZone` lists units that didn't fit and were placed outside the zone.
 - If some sizes are missing, usually vehicles with no base, it changes nothing and returns `{ ok: false, error, units }`, where each unit shows `missingSize`. Call it again with `sizes`, e.g. `{ "Chaos Rhino": "hull 117x74" }`. Sizes are written like `40`, `120x92` or `hull 117x74`, and sizes given this way are remembered like sizes entered in the page.
 
-**`units(army?)`** returns `[{ u, army, name, where, models, move_in, centre: { x, y }, bases: [{ id, label, w, h, shape, x, y, rot, wounds }] }]`. `wounds` is the model's wounds from the roster (1 when it has none). `where` is `table` or `reserve` (units in reserve have no position). `move_in` is the unit's Move from the 40kdc data, the slowest of its datasheets, or `null` if it isn't known.
+**`units(army?)`** returns `[{ u, army, name, where, models, move_in, centre: { x, y }, bases: [{ id, label, w, h, shape, x, y, rot, wounds }] }]`. `wounds` is the model's wounds from the roster (1 when it has none) and `woundsLeft` what it has left. `where` can also be `destroyed`, when every model of the unit is; `destroyed` counts the unit's destroyed models. `where` is `table` or `reserve` (units in reserve have no position). `move_in` is the unit's Move from the 40kdc data, the slowest of its datasheets, or `null` if it isn't known.
 
 **`toReserve(unit)`** takes a unit off the table into reserve, or puts an undeployed roster unit straight into reserve. Units in reserve aren't on the table: nothing collides with them, sees them or measures to them. It returns `{ ok }`.
 
@@ -88,6 +88,14 @@ Markers are tokens that don't block movement: `tunnel`, `deep-strike`, `objectiv
 **`addMarker({ kind, x, y, label, ring_in, size_mm })`** adds a marker and returns it with `ok`.
 
 **`moveMarker(id, x, y)`** and **`removeMarker(id)`** take the id or the ref.
+
+### Casualties
+
+**`wound(id, n = 1)`** takes `n` wounds off one model (a base id); a negative `n` gives wounds back. At none left the model is destroyed: it leaves the table but keeps its last position, so games record it and `restore()` can bring it back. It returns `{ ok, id, wounds, of, destroyed }`.
+
+**`destroy(ref)`** destroys a model or a whole unit. It returns `{ ok, destroyed: [ids] }`.
+
+**`restore(ref)`** brings destroyed models of a unit (a unit key) or one model (a base id) back where they fell, or the nearest free spot, with all their wounds. It returns `{ ok, restored, check }`.
 
 ### Games
 

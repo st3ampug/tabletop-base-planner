@@ -5,6 +5,7 @@ import { renderInspector, buildMapSelect, syncRulesUI, renderChips } from './ui/
 import { renderArmies } from './armies.js';
 import { cleanGames } from './game.js';
 import { renderGame } from './ui/game.js';
+import { replayOn, stopReplay } from './ui/replay.js';
 
 /* ---------- state ---------- */
 const DEFAULT_SIZES = ROUNDS.map(d => [d, d]).concat(OVALS);
@@ -47,7 +48,7 @@ function cleanBases(list){
     maxW: b.maxW > 1 ? Math.min(99, Math.round(+b.maxW)) : undefined,
     wounds: isFinite(b.wounds) && b.wounds >= 0 && b.wounds < (b.maxW || 1) ? Math.round(+b.wounds) : undefined }));
 }
-let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], reserve:[], markers:[], games:[], game:null, mode:'stop', baseCollide:true, nextId:1 };
+let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], reserve:[], dead:[], markers:[], games:[], game:null, editing:null, mode:'stop', baseCollide:true, nextId:1 };
 let M = MAPS[S.mapId];
 let T = [];                // live terrain of the current layout
 // Other modules can read these live bindings but not assign them, so they go through setters.
@@ -67,9 +68,10 @@ const undo = [];
 const view = { s: 0.3, ox: 0, oy: 0 };
 const ruler = { on:false, a:null, b:null };
 
-function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, reserve:S.reserve, markers:S.markers, games:S.games, game:S.game, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
-function pushUndo(snap){ undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
+function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, reserve:S.reserve, dead:S.dead, markers:S.markers, games:S.games, game:S.game, editing:S.editing, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
+function pushUndo(snap){ if (replayOn()) stopReplay(); undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
 function applyState(o){
+  stopReplay();
   const custom = {};
   for (const k in (o.custom || {})) { try { MAPS[k] = normMap(k, o.custom[k]); custom[k] = o.custom[k]; } catch(e){} }
   const terrain = {};
@@ -80,14 +82,16 @@ function applyState(o){
   const coh = Object.assign({ on:true, dist:2, big:7, group:true }, o.coh || {});
   const lo = o.los || {}, los = { on: lo.on === true, watch: Array.isArray(lo.watch) ? lo.watch.filter(u => typeof u === 'string') : [], range: Math.max(0, +lo.range || 0), areas: lo.areas !== false, partial: lo.partial !== false };
   S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0, los, eng: o.eng === undefined ? 1 : Math.max(0, +o.eng || 0),
-        bases: cleanBases(o.bases), reserve: cleanBases(o.reserve),
+        bases: cleanBases(o.bases), reserve: cleanBases(o.reserve), dead: cleanBases(o.dead).map(b => Object.assign(b, { wounds: 0 })),
         markers: (Array.isArray(o.markers) ? o.markers : []).filter(m => m && isFinite(m.x) && isFinite(m.y)).map(m => ({
           id: m.id, kind: MARKER_KINDS[m.kind] ? m.kind : 'note', x:+m.x, y:+m.y, d: Math.max(5, +m.d || MARKER_KINDS[MARKER_KINDS[m.kind] ? m.kind : 'note'].d), ring: Math.max(0, +m.ring || 0), label: String(m.label || '').slice(0, 24) })),
-        games: cleanGames(o.games), game: null,
+        games: cleanGames(o.games), game: null, editing: null,
         mode: o.mode === 'flag' ? 'flag' : 'stop', baseCollide: o.baseCollide !== false, nextId: o.nextId || 1 };
   if (S.games.some(g => g.id === o.game)) S.game = o.game;
-  for (const b of S.bases.concat(S.reserve, S.markers)) if (!b.id) b.id = S.nextId++;
-  S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...S.bases.concat(S.reserve, S.markers).map(b => +b.id || 0)), ...S.games.map(g => 1 + Math.max(0, ...Object.keys(g.roster).map(Number))));
+  const E = o.editing; if (E && E.game === S.game && E.keep && Number.isInteger(E.n))
+    S.editing = { game: E.game, n: E.n, keep: { bases: cleanBases(E.keep.bases), reserve: cleanBases(E.keep.reserve), dead: cleanBases(E.keep.dead) }, vp: { friendly: +(E.vp && E.vp.friendly) || 0, hostile: +(E.vp && E.vp.hostile) || 0 } };
+  for (const b of S.bases.concat(S.reserve, S.dead, S.markers)) if (!b.id) b.id = S.nextId++;
+  S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...S.bases.concat(S.reserve, S.dead, S.markers).map(b => +b.id || 0)), ...S.games.map(g => 1 + Math.max(0, ...Object.keys(g.roster).map(Number))));
   M = MAPS[S.mapId]; sel = null; loadTerrain();
   buildMapSelect(); syncRulesUI(); renderChips(); renderInspector(); renderArmies(); renderGame(); dirty();
 }

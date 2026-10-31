@@ -6,6 +6,7 @@ import { select } from './ui/actions.js';
 import { el, swatches, renderInspector } from './ui/panel.js';
 import { renderImport } from './import.js';
 import { toggleWatch, watchArmy, isWatched } from './ui/watch.js';
+import { restoreBase } from './game.js';
 
 /* ---------- armies ---------- */
 let armyView = 'friendly';
@@ -82,8 +83,8 @@ function deployAll(armyKey){
   save(); renderArmies(); dirty();
   setStatus(miss ? miss + (miss === 1 ? ' unit' : ' units') + ' did not fit in the zone and were placed near the middle' : todo.length + ' units deployed in the ' + SIDE_NAME[army.side].toLowerCase(), !!miss);
 }
-function removeUnit(u){ pushUndo(); S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) select(null); save(); renderArmies(); renderInspector(); dirty(); }
-const whereIs = u => S.bases.some(b => b.u === u) ? 'table' : S.reserve.some(b => b.u === u) ? 'reserve' : null;
+function removeUnit(u){ pushUndo(); S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.filter(b => b.u !== u); S.dead = S.dead.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) select(null); save(); renderArmies(); renderInspector(); dirty(); }
+const whereIs = u => S.bases.some(b => b.u === u) ? 'table' : S.reserve.some(b => b.u === u) ? 'reserve' : S.dead.some(b => b.u === u) ? 'destroyed' : null;
 // Reserves: the unit's bases leave the table (or are made in its formation) and wait off the board. Nothing on the board sees them.
 function toReserve(armyKey, un, quiet){
   const u = armyKey + ':' + un.key;
@@ -140,10 +141,10 @@ function renderArmies(){
   const side = el('select', { id:'army-side', 'aria-label':'Deployment zone', onchange: e => { army.side = e.target.value; save(); } },
     [el('option', { value:'blue', text:'Deploys in the blue zone' }), el('option', { value:'red', text:'Deploys in the red zone' })]); side.value = army.side;
   box.appendChild(el('div', { class:'row' }, [ side, el('button', { class:'btn', id:'army-swap', text:'Swap sides', title:'Swap zones and turn both armies to the other side', onclick: swapSides }) ]));
-  const onT = un => S.bases.some(b => b.u === k + ':' + un.key), nOn = units.filter(onT).length, nRes = units.filter(un => whereIs(k + ':' + un.key) === 'reserve').length, nPlaced = nOn + nRes;
+  const onT = un => S.bases.some(b => b.u === k + ':' + un.key), nOn = units.filter(onT).length, nRes = units.filter(un => whereIs(k + ':' + un.key) === 'reserve').length, nDeadU = units.filter(un => whereIs(k + ':' + un.key) === 'destroyed').length, nPlaced = nOn + nRes + nDeadU;
   box.appendChild(el('div', { class:'row' }, [ Object.assign(el('button', { class:'btn primary', id:'army-deploy', text: nPlaced === units.length && units.length ? 'All deployed' : nPlaced ? 'Deploy the rest' : 'Deploy all', onclick: () => deployAll(k) }), { disabled: !units.length || nPlaced === units.length }),
     el('button', { class:'btn danger', id:'army-clear', text:'Clear from table', onclick: () => clearArmy(k) }),
-    el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' + (nRes ? ' · ' + nRes + ' in reserve' : '') }) ]));
+    el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' + (nRes ? ' · ' + nRes + ' in reserve' : '') + (nDeadU ? ' · ' + nDeadU + ' destroyed' : '') }) ]));
   const nW = units.filter(un => isWatched(k + ':' + un.key)).length;
   if (nOn) box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'army-watch', text:'Watch all', title:'Show where this whole army can see', onclick: () => watchArmy(k, true) }),
     el('button', { class:'btn', id:'army-unwatch', text:'Unwatch all', onclick: () => watchArmy(k, false) }), el('span', { class:'hint k', text: nW + ' watched for sight' }) ]));
@@ -157,13 +158,17 @@ function renderArmies(){
       : where === 'reserve' ? [ el('button', { class:'btn primary', text:'Arrive', title:'Bring the unit onto the table in the middle of the view', 'aria-label':'Bring ' + un.name + ' onto the table', onclick: () => {
           pushUndo(); const r = arrive(u); if (!r.ok){ setStatus(r.error, true); return; } save(); renderArmies(); focusUnit(u); setStatus(un.name + ' arrived. Drag it into place.'); } }),
         el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
+      : where === 'destroyed' ? [ el('button', { class:'btn', text:'Restore', title:'Bring the destroyed models back where they were, with all their wounds', 'aria-label':'Restore ' + un.name, onclick: () => {
+          pushUndo(); S.dead.filter(b => b.u === u).forEach(restoreBase); save(); renderArmies(); renderInspector(); dirty(); setStatus(un.name + ' restored'); } }),
+        el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
       : [ el('button', { class:'btn', text:'Deploy', 'aria-label':'Deploy ' + un.name, onclick: () => { pushUndo(); deployUnit(k, un); save(); renderArmies(); focusUnit(u); } }),
         el('button', { class:'btn', text:'Reserve', 'aria-label':'Put ' + un.name + ' in reserve', onclick: () => { pushUndo(); toReserve(k, un); } }) ];
-    list.appendChild(el('div', { class:'unit' + (on ? ' on' : where === 'reserve' ? ' res' : '') }, [
+    const nDead = S.dead.filter(b => b.u === u).length;
+    list.appendChild(el('div', { class:'unit' + (on ? ' on' : where === 'reserve' ? ' res' : where === 'destroyed' ? ' dead' : '') }, [
       el('span', { class:'tag', style:'background:' + army.colour + ';color:' + fg, text: un.key }),
       el('span', { class:'nm', text: un.name }),
       el('div', { class:'acts' }, acts),
-      el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : where === 'reserve' ? ' · in reserve' : '') }) ]));
+      el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : where === 'reserve' ? ' · in reserve' : where === 'destroyed' ? ' · destroyed' : '') + (on && nDead ? ' · ' + nDead + ' destroyed' : '') }) ]));
   });
   if (!units.length) list.appendChild(el('p', { class:'hint', text:'No units yet. Open Edit roster below and add a line per unit.' }));
   box.appendChild(list);

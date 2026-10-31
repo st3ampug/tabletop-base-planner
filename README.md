@@ -17,7 +17,8 @@ A web page for planning Warhammer 40,000 (11th edition) deployments with true-si
 - **Coherency:** models out of coherency are outlined in orange. The distance, the size at which a unit needs two neighbours, and the "one group" rule are settings in the Rules tab.
 - **Collision:** each terrain piece either blocks bases or lets them enter. A blocked move can stop at the obstacle or be allowed and flagged in red.
 - **Terrain editing:** move, turn, add, remove and rename pieces. An area carries its walls with it.
-- **Games:** record a game phase by phase. Each step keeps where every model was, which were in reserve or destroyed, and the victory points, for 5 rounds of attacker and defender turns. Wounds per model come from the data.
+- **Games:** record a game phase by phase. Each step keeps where every model was, which were in reserve or destroyed, and the victory points, for 5 rounds of attacker and defender turns. Replay it step by step or play it through, with each move drawn as a line and its distance; correct a saved step; copy a game as text to another device or an analysis AI.
+- **Casualties:** take wounds off models (wounds per model come from the data). Destroyed models leave the table and can be restored.
 - **Boards:** keep several named boards, each with its own layout, armies and positions, saved in the browser. Copy a board as text to move it to another device or hand it to an analysis tool.
 
 ## Roster format
@@ -39,7 +40,7 @@ Everything is in millimetres. The origin is the top-left corner and y increases 
 - `mapId`, `mode` (`stop` or `flag`), `baseCollide`, `unitMove`, `ring`, `coh` (coherency settings), `los` (line of sight: `on`, `watch` unit keys such as `"hostile:LYS"`, `range` in inches with 0 for any, `areas`, `partial`)
 - `armies.friendly` / `armies.hostile`: `name`, `colour`, `side` (`blue` or `red`), `roster`
 - `bases[]`: `id`, `w`, `h` (w ≥ h), `x`, `y` (centre), `rot` (degrees clockwise), `shape` (`hull` for vehicles), `label`, `army`, `u` (unit key, e.g. `friendly:LUC`), `maxW` (wounds per model, when more than 1)
-- `reserve[]` (bases of units in reserve), `markers[]`
+- `reserve[]` (bases of units in reserve), `dead[]` (destroyed models, where they fell), `markers[]`; a base's `wounds` is what it has left, when it has lost some
 - `games[]`, `game` (the open game's id): recorded games, each with its phases, a roster of models and its saved steps. Step 0 lists every model; later steps list only the models that changed, as `[x, y, rot, wounds]` or `[x, y, rot, wounds, "reserve"|"destroyed"]`. Described in `docs/agent-briefing.md`.
 - `table` (read-only, ignored when loading): `zones[]`, `objectives[]` (`role`, `owner`, `x`, `y`) and `terrain[]` (`kind` `area` or `wall`, `collision`, `poly`)
 

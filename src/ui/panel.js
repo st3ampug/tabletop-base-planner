@@ -9,6 +9,8 @@ import { renderBoards } from './boards.js';
 import { toggleWatch, isWatched, syncSightUI } from './watch.js';
 import { renderMarkerInspector } from './markers.js';
 import { moveOf } from '../import.js';
+import { woundsLeft, woundBase, restoreBase } from '../game.js';
+import { renderGame } from './game.js';
 
 /* ---------- panel ---------- */
 let editSizes = false;
@@ -56,10 +58,23 @@ function renderInspector(){
     box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'f-unitmove', 'aria-pressed': String(S.unitMove), text: S.unitMove ? 'Dragging the whole unit' : 'Dragging one model', onclick: () => setUnitMove(!S.unitMove) }),
       el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }),
       el('button', { class:'btn', id:'f-watch', 'aria-pressed': String(isWatched(b.u)), text: isWatched(b.u) ? 'Watching its sight' : 'Watch its sight', title:'Show where this unit can see', onclick: () => toggleWatch(b.u) }) ])); }
-  box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-maxw', text:'Wounds' }),
+  // Wounds: take them off one at a time; at 0 the model is destroyed and leaves the table. Restore brings destroyed models of the unit back.
+  const hurt = d => () => { const r = woundBase(b, d); if (!r) return; renderInspector(); renderArmies(); renderGame(); dirty();
+    setStatus(r.destroyed ? (b.label || 'Model') + ' destroyed. Undo or Restore brings it back.' : (b.label || 'Model') + ': ' + r.wounds + ' of ' + (b.maxW || 1) + ' wounds left'); };
+  const wl = woundsLeft(b), wmax = b.maxW || 1;
+  box.appendChild(el('div', { class:'wnd', role:'group', 'aria-label':'Wounds' }, [ el('label', { text:'Wounds', class:'hint' }),
+    el('button', { class:'btn', id:'f-wound', text:'−1', 'aria-label':'Take one wound off', onclick: hurt(1) }),
+    el('span', { class:'n', id:'f-wounds', text: wl + '/' + wmax, 'aria-label': wl + ' of ' + wmax + ' wounds left' }),
+    Object.assign(el('button', { class:'btn', id:'f-heal', text:'+1', 'aria-label':'Give one wound back', onclick: hurt(-1) }), { disabled: wl >= wmax }),
+    el('button', { class:'btn danger', id:'f-destroy', text:'Destroy', title:'Remove the model as a casualty; it can be restored', onclick: hurt(wmax) }) ]));
+  const deadHere = b.u ? S.dead.filter(x => x.u === b.u) : [];
+  if (deadHere.length) box.appendChild(el('div', { class:'row' }, [ el('span', { class:'hint', text: deadHere.length + ' destroyed in this unit' }),
+    el('button', { class:'btn', id:'f-restore', text:'Restore one', title:'Bring back the last model of this unit to be destroyed, where it was', onclick: () => {
+      pushUndo(); restoreBase(deadHere[deadHere.length - 1]); save(); renderInspector(); renderArmies(); dirty(); setStatus('Model restored'); } }) ]));
+  box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-maxw', text:'Wounds per model' }),
     el('input', { type:'number', id:'f-maxw', min:'1', max:'99', step:'1', inputmode:'numeric', style:'width:64px', value: String(b.maxW || 1), 'aria-label':'Wounds of this model',
-      onchange: e => { pushUndo(); const v = Math.max(1, Math.min(99, Math.round(+e.target.value) || 1)); b.maxW = v > 1 ? v : undefined; if (b.wounds > v) b.wounds = v; save(); renderInspector(); dirty(); } }),
-    el('span', { class:'hint', text: 'per model, from the list (1 if it has none)' }) ]));
+      onchange: e => { const v = Math.max(1, Math.min(99, Math.round(+e.target.value) || 1)); if (v === (b.maxW || 1)) return; pushUndo(); b.maxW = v > 1 ? v : undefined; if (b.wounds >= v) b.wounds = undefined; save(); renderInspector(); dirty(); } }),
+    el('span', { class:'hint', text: 'from the list' }) ]));
   box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-label', text:'Label' }),
     el('input', { type:'text', id:'f-label', maxlength:'6', value: b.label, autocomplete:'off', oninput: e => { b.label = e.target.value.slice(0, 6); save(); dirty(); } }) ]));
   box.appendChild(el('div', { class:'row', role:'group', 'aria-label':'Base colour' }, swatches(b.colour, c => { pushUndo(); b.colour = c; save(); renderInspector(); dirty(); }, 'fc-')));

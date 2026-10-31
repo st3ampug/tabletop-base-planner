@@ -77,6 +77,9 @@ details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 .unit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--chip)}
 .unit.on{border-color:var(--accent)}
 .unit.res{border-style:dashed}
+.unit.dead{opacity:.6;border-style:dotted}
+.wnd{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.wnd .n{font-family:var(--mono);font-weight:700;font-size:15px;min-width:3.4em;text-align:center}
 .unit .tag{font-family:var(--mono);font-weight:700;font-size:11.5px;border-radius:5px;padding:3px 6px;min-width:38px;text-align:center}
 .unit .nm{font-weight:600;font-size:13px;min-width:0;overflow-wrap:anywhere}
 .unit .sz{grid-column:2 / -1;font-family:var(--mono);font-size:11px;color:var(--muted)}
@@ -140,12 +143,26 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
 .gb-now{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:13px}
 .gb-of{color:var(--muted);font-size:12px;margin-left:auto}
 .gb-vp{display:flex;gap:10px;align-items:center}
+.gb-rp{display:flex;gap:4px;align-items:center}
+.gb-rp .btn{min-height:32px;min-width:34px;padding:3px 8px}
+.gb-rp input[type=range]{width:150px;flex:0 1 150px}
+.gb-act{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.gamebar.replay{background:#24302c;color:#eef3f1;border-bottom-color:#000}
+.gamebar.replay .gb-now,.gamebar.replay .gb-of{color:#b9c7c2}
+.gamebar.editing{background:#fff3cd;color:#3a2c00}
+.gamebar.editing .gb-now,.gamebar.editing .gb-of{color:#6b5a1f}
+.gamebar.replay .btn:not(.primary),.gamebar.editing .btn:not(.primary){color:#17201d;background:#f5f7f6;border-color:#9aa8a3}
+.gamebar.replay .btn:disabled{opacity:.35}
 .vp{display:flex;gap:4px;align-items:center}
 .vp .dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.35)}
 .vp .n{font-family:var(--mono);font-weight:700;min-width:2.2em;text-align:center;font-variant-numeric:tabular-nums}
 .vp .btn{min-height:32px;min-width:32px;padding:3px 8px}
 .steps{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto}
-.steps .st{display:flex;gap:8px;align-items:baseline;font-size:12.5px;border-bottom:1px solid var(--line);padding:3px 0}
+.steps .st{display:flex;gap:8px;align-items:baseline;font-size:12.5px;border:0;border-bottom:1px solid var(--line);padding:4px 2px;background:none;text-align:left;cursor:pointer;width:100%}
+.steps .st:hover{background:var(--chip)}
+.steps .st.cur{background:var(--accent);color:var(--accent-fg)}
+.steps .st.cur .i,.steps .st.cur .s{color:var(--accent-fg)}
+.steps .st:disabled{cursor:default}
 .steps .st .i{font-family:var(--mono);color:var(--muted);min-width:2em;text-align:right}
 .steps .st .l{flex:1;min-width:0}
 .steps .st .s{font-family:var(--mono);color:var(--muted);font-size:11px;white-space:nowrap}
@@ -153,6 +170,8 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
 @media (max-width:820px){
   .gamebar{padding:5px 16px;gap:4px 10px}
   .gb-step{flex-basis:100%}
+  .gb-rp{flex:1 1 100%}
+  .gb-rp input[type=range]{flex:1 1 auto;width:auto}
   .gb-vp{flex:1}
   .bar h1{display:none}
   .bar{padding:6px 16px}
@@ -196,18 +215,22 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Moving:</b> drag a base to move it. The distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
       <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
       <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
-      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency. A red line links a friendly and an enemy model within engagement range.</li>
+      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency. A red line links a friendly and an enemy model within engagement range. A small red number on a base is the wounds a model has left, once it has lost some.</li>
       <li><b>Markers:</b> tunnel markers, deep strike points, objective markers and notes sit on the board without blocking movement. Drag them like bases, and give them a label or a ring from the Selected tab.</li>
       <li><b>Sight:</b> the <b>Sight</b> button on the board tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; turning Sight on with nothing watched watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
     </ul>
     <h3>The tabs</h3>
     <ul>
       <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, put units in <b>Reserve</b> and bring them on with <b>Arrive</b>, watch units for the Sight overlay (the eye buttons), and edit the roster by hand. Change a base size in the list preview and the planner remembers it for that unit next time.</li>
-      <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label, colour or wounds, show a range ring around the model or unit (1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data), duplicate or remove.</li>
+      <li><b>Selected:</b> the tapped base or terrain piece. Take wounds off a model with <b>−1</b> (or give one back with <b>+1</b>); at none left, or with <b>Destroy</b>, it leaves the table as a casualty, and <b>Restore one</b> brings the unit's last casualty back where it fell. A unit whose models are all destroyed shows as destroyed in the Armies tab, with <b>Restore</b>. Here you can also turn oval and hull bases, change the label, colour or wounds per model, show a range ring around the model or unit (1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data), duplicate or remove.</li>
       <li><b>Bases:</b> add loose bases by size, for models that aren't in a list, and add markers.</li>
       <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
       <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
-      <li><b>Game:</b> record a game phase by phase. Start a game once both armies are deployed, choose the attacker and the phases, then press <b>Save step</b> in the bar above the board at the end of each phase. The bar shows the phase to play and each army's victory points, with − and + to change them. Here you also see the saved steps, delete the last one, close the game, or open a closed game, which puts the models back where its last step had them.</li>
+      <li><b>Game:</b> record a game phase by phase. Start a game once both armies are deployed, choose the attacker and the phases, then press <b>Save step</b> in the bar above the board at the end of each phase. The bar shows the phase to play and each army's victory points, with − and + to change them. Here you also see the saved steps, delete the last one, copy the game as text, close the game, or open a closed game, which puts the models back where its last step had them.
+        <ul>
+          <li><b>Replay:</b> tap a step in the list, or use <b>◀</b>, <b>▶</b> and the slider in the bar, to see the board as it was at that step. Each moved model shows a line from where it was a step before, each unit that moved shows its longest move in inches, and destroyed models are faded outlines. <b>▶</b> and <b>▶▶</b> (play) move the models from one step to the next. Replay is read-only: dragging pans the board. <b>Back to game</b> (or the far right of the slider) returns to the board as it is now.</li>
+          <li><b>Correcting a step:</b> while replaying, press <b>Edit this step</b>. The board goes to that step; move, wound or restore models and change the score, then press <b>Save, later steps unchanged</b> (later steps keep their positions) or <b>Save and carry forward</b> (models the later steps didn't move stay where you put them), or <b>Cancel</b>. Either way your board comes back as it was before the edit.</li>
+        </ul></li>
       <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file. AI assistants and scripts can also drive the page directly through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
     </ul>
     <h3>Keys</h3>
@@ -223,8 +246,9 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Reserves.</b> Put units that start off the table in reserve from the Armies tab. When one arrives, press <b>Arrive</b>; it appears in the middle of the view for you to drag into place.</li>
       <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
       <li><b>Start the game.</b> In the Game tab, check the attacker and the phases and press <b>Start game</b>. The deployment is saved as step 0.</li>
-      <li><b>Play each phase.</b> The bar above the board shows the phase to play. Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings (the Move and Advance rings show how far a unit can go), and remove destroyed models from the Selected tab. Change the victory points with − and +, then press <b>Save step</b>. Each army gets its turn in every round, the attacker first, for 5 rounds.</li>
-      <li><b>Review.</b> Copy the board as text from the Save tab. It includes the game, every saved step and the table layout, so an analysis AI can follow the game.</li>
+      <li><b>Play each phase.</b> The bar above the board shows the phase to play. Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings (the Move and Advance rings show how far a unit can go), and remove destroyed models from the Selected tab. Take wounds off models in the Selected tab as they're hit; destroyed models leave the table. Change the victory points with − and +, then press <b>Save step</b>. Each army gets its turn in every round, the attacker first, for 5 rounds.</li>
+      <li><b>Fix mistakes.</b> If a step was saved wrong, show it and press <b>Edit this step</b>.</li>
+      <li><b>Review.</b> Press <b>▶▶</b> in the bar to play the game through, or step through it with ◀ ▶. <b>Copy game</b> in the Game tab copies the game and the table as text, so you can load it on another device (Save tab, <b>Load from text</b>) or give it to an analysis AI.</li>
     </ol>
   </div>
 </dialog>
@@ -242,8 +266,9 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
 
 <div class="gamebar" id="gamebar" hidden>
   <span class="gb-step" id="gb-step"><b class="gb-ph" id="gb-phase"></b><span class="gb-now" id="gb-now"></span><span class="gb-of k" id="gb-of"></span></span>
+  <span class="gb-rp" id="gb-rp"></span>
   <span class="gb-vp" id="gb-vp"></span>
-  <button class="btn primary" id="gb-save" title="Save where every model is now as the end of this phase">Save step</button>
+  <span class="gb-act" id="gb-act"></span>
 </div>
 
 <div class="work">
@@ -376,7 +401,7 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
           <button class="btn" id="bd-dup">Duplicate this board</button>
         </div>
         <h2 style="margin-top:6px">Save and load</h2>
-        <p class="hint">To move a board to another device, copy the text below and load it there. A map file loads the same way. The copied text also describes the table (zones, objective centres, terrain and walls in mm) for anyone analysing it.</p>
+        <p class="hint">To move a board to another device, copy the text below and load it there. A copied game or a map file loads the same way. The copied text also describes the table (zones, objective centres, terrain and walls in mm) for anyone analysing it.</p>
         <textarea id="io" spellcheck="false" aria-label="Board or map as JSON text"></textarea>
         <div class="row">
           <button class="btn" id="io-copy">Copy board</button>
@@ -516,7 +541,7 @@ function cleanBases(list){
     maxW: b.maxW > 1 ? Math.min(99, Math.round(+b.maxW)) : undefined,
     wounds: isFinite(b.wounds) && b.wounds >= 0 && b.wounds < (b.maxW || 1) ? Math.round(+b.wounds) : undefined }));
 }
-let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], reserve:[], markers:[], games:[], game:null, mode:'stop', baseCollide:true, nextId:1 };
+let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], reserve:[], dead:[], markers:[], games:[], game:null, editing:null, mode:'stop', baseCollide:true, nextId:1 };
 let M = MAPS[S.mapId];
 let T = [];                // live terrain of the current layout
 // Other modules can read these live bindings but not assign them, so they go through setters.
@@ -536,9 +561,10 @@ const undo = [];
 const view = { s: 0.3, ox: 0, oy: 0 };
 const ruler = { on:false, a:null, b:null };
 
-function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, reserve:S.reserve, markers:S.markers, games:S.games, game:S.game, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
-function pushUndo(snap){ undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
+function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, reserve:S.reserve, dead:S.dead, markers:S.markers, games:S.games, game:S.game, editing:S.editing, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
+function pushUndo(snap){ if (replayOn()) stopReplay(); undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
 function applyState(o){
+  stopReplay();
   const custom = {};
   for (const k in (o.custom || {})) { try { MAPS[k] = normMap(k, o.custom[k]); custom[k] = o.custom[k]; } catch(e){} }
   const terrain = {};
@@ -549,14 +575,16 @@ function applyState(o){
   const coh = Object.assign({ on:true, dist:2, big:7, group:true }, o.coh || {});
   const lo = o.los || {}, los = { on: lo.on === true, watch: Array.isArray(lo.watch) ? lo.watch.filter(u => typeof u === 'string') : [], range: Math.max(0, +lo.range || 0), areas: lo.areas !== false, partial: lo.partial !== false };
   S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0, los, eng: o.eng === undefined ? 1 : Math.max(0, +o.eng || 0),
-        bases: cleanBases(o.bases), reserve: cleanBases(o.reserve),
+        bases: cleanBases(o.bases), reserve: cleanBases(o.reserve), dead: cleanBases(o.dead).map(b => Object.assign(b, { wounds: 0 })),
         markers: (Array.isArray(o.markers) ? o.markers : []).filter(m => m && isFinite(m.x) && isFinite(m.y)).map(m => ({
           id: m.id, kind: MARKER_KINDS[m.kind] ? m.kind : 'note', x:+m.x, y:+m.y, d: Math.max(5, +m.d || MARKER_KINDS[MARKER_KINDS[m.kind] ? m.kind : 'note'].d), ring: Math.max(0, +m.ring || 0), label: String(m.label || '').slice(0, 24) })),
-        games: cleanGames(o.games), game: null,
+        games: cleanGames(o.games), game: null, editing: null,
         mode: o.mode === 'flag' ? 'flag' : 'stop', baseCollide: o.baseCollide !== false, nextId: o.nextId || 1 };
   if (S.games.some(g => g.id === o.game)) S.game = o.game;
-  for (const b of S.bases.concat(S.reserve, S.markers)) if (!b.id) b.id = S.nextId++;
-  S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...S.bases.concat(S.reserve, S.markers).map(b => +b.id || 0)), ...S.games.map(g => 1 + Math.max(0, ...Object.keys(g.roster).map(Number))));
+  const E = o.editing; if (E && E.game === S.game && E.keep && Number.isInteger(E.n))
+    S.editing = { game: E.game, n: E.n, keep: { bases: cleanBases(E.keep.bases), reserve: cleanBases(E.keep.reserve), dead: cleanBases(E.keep.dead) }, vp: { friendly: +(E.vp && E.vp.friendly) || 0, hostile: +(E.vp && E.vp.hostile) || 0 } };
+  for (const b of S.bases.concat(S.reserve, S.dead, S.markers)) if (!b.id) b.id = S.nextId++;
+  S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...S.bases.concat(S.reserve, S.dead, S.markers).map(b => +b.id || 0)), ...S.games.map(g => 1 + Math.max(0, ...Object.keys(g.roster).map(Number))));
   M = MAPS[S.mapId]; sel = null; loadTerrain();
   buildMapSelect(); syncRulesUI(); renderChips(); renderInspector(); renderArmies(); renderGame(); dirty();
 }
@@ -911,7 +939,12 @@ function tag(text, x, y, warn){
   ctx.fillStyle = warn ? '#8f1d17' : 'rgba(10,14,13,.88)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(px, py, w, 22, 5) : ctx.rect(px, py, w, 22); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText(text, px + 6, py + 11.5); ctx.restore();
 }
+// In replay the board draws the shown step's models in place of the live ones, then puts the live ones back.
 function draw(){
+  if (!replayOn()) return drawBoard();
+  const live = S.bases; S.bases = replayBases(); try { drawBoard(); } finally { S.bases = live; }
+}
+function drawBoard(){
   raf = 0;
   const dpr = cv.width/cssW, s = view.s, px = 1/s;
   ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -950,6 +983,7 @@ function draw(){
   for (const t of T) if (t.objective) objIcon(t);
   for (const m of M.markers){ ctx.fillStyle = 'rgba(20,26,24,.55)'; ctx.beginPath(); ctx.moveTo(m[0], m[1]-12); ctx.lineTo(m[0]+12, m[1]); ctx.lineTo(m[0], m[1]+12); ctx.lineTo(m[0]-12, m[1]); ctx.fill(); }
   drawSight(ctx);
+  if (replayOn()) drawReplayUnder(ctx, px);
   // bases
   let badCount = 0; const selUnit = sel && sel.type === 'base' && S.unitMove ? sel.b.u : null;
   const coh = cohIssues(); let cohUnits = [];
@@ -974,6 +1008,10 @@ function draw(){
       if (fs*s >= 6){ ctx.fillStyle = lum(b.colour) > 0.55 ? '#111' : '#fff'; ctx.font = '700 ' + fs + 'px ' + getComputedStyle(document.body).fontFamily;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(b.label, b.x, b.y + fs*0.05); }
     }
+    // Wounds left, on models with more than 1 W that have lost some: a red badge at the edge of the base.
+    if (b.maxW > 1 && b.wounds !== undefined && b.wounds < b.maxW){ const rr = Math.max(Math.min(b.w, b.h)*0.2, 5*px), bx = b.x + b.w*0.32, by = b.y - b.h*0.32;
+      ctx.beginPath(); ctx.arc(bx, by, rr, 0, 7); ctx.fillStyle = '#b3261e'; ctx.fill(); ctx.lineWidth = Math.max(px, 0.8); ctx.strokeStyle = '#fff'; ctx.stroke();
+      if (rr*s >= 5){ ctx.fillStyle = '#fff'; ctx.font = '700 ' + rr*1.25 + 'px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(b.wounds), bx, by + rr*0.06); } }
     if (isHull(b)){ const r = rad(b.rot), f = b.w/2 - Math.min(b.w, b.h)*0.18; ctx.beginPath(); ctx.moveTo(b.x + Math.cos(r)*f, b.y + Math.sin(r)*f); ctx.lineTo(b.x + Math.cos(r)*(b.w/2 - 2), b.y + Math.sin(r)*(b.w/2 - 2));
       ctx.lineWidth = Math.max(2*px, 1.5); ctx.strokeStyle = lum(b.colour) > 0.55 ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.6)'; ctx.stroke(); }
     const cb = b.u && coh.get(b.u);
@@ -984,6 +1022,7 @@ function draw(){
   // engaged pairs: a short red link between the closest friendly and hostile models in engagement range
   for (const p of engagedPairs()){ ctx.beginPath(); ctx.moveTo(p.a.x, p.a.y); ctx.lineTo(p.b.x, p.b.y); ctx.lineWidth = 3*px; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke(); ctx.lineWidth = 1.6*px; ctx.strokeStyle = '#ff5a3c'; ctx.stroke(); }
   drawMarkers(ctx, px, s);
+  if (replayOn()) drawReplayOver();
   // overlays
   if (drag && drag.b){
     const b = drag.b, d = Math.hypot(b.x - drag.sx, b.y - drag.sy);
@@ -1064,13 +1103,14 @@ cv.addEventListener('pointerdown', e => {
   if (ptrs.size > 2) return;
   const w = s2w(p[0], p[1]);
   if (ruler.on){ g = { type:'ruler' }; ruler.a = w; ruler.b = w; dirty(); return; }
-  const mk = hitMarker(w);
+  // A replayed step is read-only: dragging anywhere pans.
+  const mk = replayOn() ? null : hitMarker(w);
   if (mk){ select({ type:'marker', m: mk }); g = { type:'marker', m: mk, dx: w[0]-mk.x, dy: w[1]-mk.y, sx: mk.x, sy: mk.y, p, moved:false, snap: snapshot() }; cv.style.cursor = 'grabbing'; return; }
-  const b = hitBase(p[0], p[1]);
+  const b = replayOn() ? null : hitBase(p[0], p[1]);
   if (b){ select({ type:'base', b }); const G = S.unitMove && b.u ? S.bases.filter(x => x.u === b.u) : [b];
     g = { type:'base', b, G, sx: b.x, sy: b.y, dx: w[0]-b.x, dy: w[1]-b.y, p, moved:false, snap: snapshot() }; }
   else {
-    const t = editTerrain ? hitTerrain(w) : null;
+    const t = editTerrain && !replayOn() ? hitTerrain(w) : null;
     if (t){ select({ type:'terrain', t }); g = { type:'terrain', t, last: w, p, moved:false, snap: snapshot() }; }
     else g = { type:'pan', p, ox: view.ox, oy: view.oy, moved:false };
   }
@@ -1292,10 +1332,23 @@ function renderInspector(){
     box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'f-unitmove', 'aria-pressed': String(S.unitMove), text: S.unitMove ? 'Dragging the whole unit' : 'Dragging one model', onclick: () => setUnitMove(!S.unitMove) }),
       el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }),
       el('button', { class:'btn', id:'f-watch', 'aria-pressed': String(isWatched(b.u)), text: isWatched(b.u) ? 'Watching its sight' : 'Watch its sight', title:'Show where this unit can see', onclick: () => toggleWatch(b.u) }) ])); }
-  box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-maxw', text:'Wounds' }),
+  // Wounds: take them off one at a time; at 0 the model is destroyed and leaves the table. Restore brings destroyed models of the unit back.
+  const hurt = d => () => { const r = woundBase(b, d); if (!r) return; renderInspector(); renderArmies(); renderGame(); dirty();
+    setStatus(r.destroyed ? (b.label || 'Model') + ' destroyed. Undo or Restore brings it back.' : (b.label || 'Model') + ': ' + r.wounds + ' of ' + (b.maxW || 1) + ' wounds left'); };
+  const wl = woundsLeft(b), wmax = b.maxW || 1;
+  box.appendChild(el('div', { class:'wnd', role:'group', 'aria-label':'Wounds' }, [ el('label', { text:'Wounds', class:'hint' }),
+    el('button', { class:'btn', id:'f-wound', text:'−1', 'aria-label':'Take one wound off', onclick: hurt(1) }),
+    el('span', { class:'n', id:'f-wounds', text: wl + '/' + wmax, 'aria-label': wl + ' of ' + wmax + ' wounds left' }),
+    Object.assign(el('button', { class:'btn', id:'f-heal', text:'+1', 'aria-label':'Give one wound back', onclick: hurt(-1) }), { disabled: wl >= wmax }),
+    el('button', { class:'btn danger', id:'f-destroy', text:'Destroy', title:'Remove the model as a casualty; it can be restored', onclick: hurt(wmax) }) ]));
+  const deadHere = b.u ? S.dead.filter(x => x.u === b.u) : [];
+  if (deadHere.length) box.appendChild(el('div', { class:'row' }, [ el('span', { class:'hint', text: deadHere.length + ' destroyed in this unit' }),
+    el('button', { class:'btn', id:'f-restore', text:'Restore one', title:'Bring back the last model of this unit to be destroyed, where it was', onclick: () => {
+      pushUndo(); restoreBase(deadHere[deadHere.length - 1]); save(); renderInspector(); renderArmies(); dirty(); setStatus('Model restored'); } }) ]));
+  box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-maxw', text:'Wounds per model' }),
     el('input', { type:'number', id:'f-maxw', min:'1', max:'99', step:'1', inputmode:'numeric', style:'width:64px', value: String(b.maxW || 1), 'aria-label':'Wounds of this model',
-      onchange: e => { pushUndo(); const v = Math.max(1, Math.min(99, Math.round(+e.target.value) || 1)); b.maxW = v > 1 ? v : undefined; if (b.wounds > v) b.wounds = v; save(); renderInspector(); dirty(); } }),
-    el('span', { class:'hint', text: 'per model, from the list (1 if it has none)' }) ]));
+      onchange: e => { const v = Math.max(1, Math.min(99, Math.round(+e.target.value) || 1)); if (v === (b.maxW || 1)) return; pushUndo(); b.maxW = v > 1 ? v : undefined; if (b.wounds >= v) b.wounds = undefined; save(); renderInspector(); dirty(); } }),
+    el('span', { class:'hint', text: 'from the list' }) ]));
   box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-label', text:'Label' }),
     el('input', { type:'text', id:'f-label', maxlength:'6', value: b.label, autocomplete:'off', oninput: e => { b.label = e.target.value.slice(0, 6); save(); dirty(); } }) ]));
   box.appendChild(el('div', { class:'row', role:'group', 'aria-label':'Base colour' }, swatches(b.colour, c => { pushUndo(); b.colour = c; save(); renderInspector(); dirty(); }, 'fc-')));
@@ -1485,8 +1538,8 @@ function deployAll(armyKey){
   save(); renderArmies(); dirty();
   setStatus(miss ? miss + (miss === 1 ? ' unit' : ' units') + ' did not fit in the zone and were placed near the middle' : todo.length + ' units deployed in the ' + SIDE_NAME[army.side].toLowerCase(), !!miss);
 }
-function removeUnit(u){ pushUndo(); S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) select(null); save(); renderArmies(); renderInspector(); dirty(); }
-const whereIs = u => S.bases.some(b => b.u === u) ? 'table' : S.reserve.some(b => b.u === u) ? 'reserve' : null;
+function removeUnit(u){ pushUndo(); S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.filter(b => b.u !== u); S.dead = S.dead.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) select(null); save(); renderArmies(); renderInspector(); dirty(); }
+const whereIs = u => S.bases.some(b => b.u === u) ? 'table' : S.reserve.some(b => b.u === u) ? 'reserve' : S.dead.some(b => b.u === u) ? 'destroyed' : null;
 // Reserves: the unit's bases leave the table (or are made in its formation) and wait off the board. Nothing on the board sees them.
 function toReserve(armyKey, un, quiet){
   const u = armyKey + ':' + un.key;
@@ -1543,10 +1596,10 @@ function renderArmies(){
   const side = el('select', { id:'army-side', 'aria-label':'Deployment zone', onchange: e => { army.side = e.target.value; save(); } },
     [el('option', { value:'blue', text:'Deploys in the blue zone' }), el('option', { value:'red', text:'Deploys in the red zone' })]); side.value = army.side;
   box.appendChild(el('div', { class:'row' }, [ side, el('button', { class:'btn', id:'army-swap', text:'Swap sides', title:'Swap zones and turn both armies to the other side', onclick: swapSides }) ]));
-  const onT = un => S.bases.some(b => b.u === k + ':' + un.key), nOn = units.filter(onT).length, nRes = units.filter(un => whereIs(k + ':' + un.key) === 'reserve').length, nPlaced = nOn + nRes;
+  const onT = un => S.bases.some(b => b.u === k + ':' + un.key), nOn = units.filter(onT).length, nRes = units.filter(un => whereIs(k + ':' + un.key) === 'reserve').length, nDeadU = units.filter(un => whereIs(k + ':' + un.key) === 'destroyed').length, nPlaced = nOn + nRes + nDeadU;
   box.appendChild(el('div', { class:'row' }, [ Object.assign(el('button', { class:'btn primary', id:'army-deploy', text: nPlaced === units.length && units.length ? 'All deployed' : nPlaced ? 'Deploy the rest' : 'Deploy all', onclick: () => deployAll(k) }), { disabled: !units.length || nPlaced === units.length }),
     el('button', { class:'btn danger', id:'army-clear', text:'Clear from table', onclick: () => clearArmy(k) }),
-    el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' + (nRes ? ' · ' + nRes + ' in reserve' : '') }) ]));
+    el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' + (nRes ? ' · ' + nRes + ' in reserve' : '') + (nDeadU ? ' · ' + nDeadU + ' destroyed' : '') }) ]));
   const nW = units.filter(un => isWatched(k + ':' + un.key)).length;
   if (nOn) box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'army-watch', text:'Watch all', title:'Show where this whole army can see', onclick: () => watchArmy(k, true) }),
     el('button', { class:'btn', id:'army-unwatch', text:'Unwatch all', onclick: () => watchArmy(k, false) }), el('span', { class:'hint k', text: nW + ' watched for sight' }) ]));
@@ -1560,13 +1613,17 @@ function renderArmies(){
       : where === 'reserve' ? [ el('button', { class:'btn primary', text:'Arrive', title:'Bring the unit onto the table in the middle of the view', 'aria-label':'Bring ' + un.name + ' onto the table', onclick: () => {
           pushUndo(); const r = arrive(u); if (!r.ok){ setStatus(r.error, true); return; } save(); renderArmies(); focusUnit(u); setStatus(un.name + ' arrived. Drag it into place.'); } }),
         el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
+      : where === 'destroyed' ? [ el('button', { class:'btn', text:'Restore', title:'Bring the destroyed models back where they were, with all their wounds', 'aria-label':'Restore ' + un.name, onclick: () => {
+          pushUndo(); S.dead.filter(b => b.u === u).forEach(restoreBase); save(); renderArmies(); renderInspector(); dirty(); setStatus(un.name + ' restored'); } }),
+        el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
       : [ el('button', { class:'btn', text:'Deploy', 'aria-label':'Deploy ' + un.name, onclick: () => { pushUndo(); deployUnit(k, un); save(); renderArmies(); focusUnit(u); } }),
         el('button', { class:'btn', text:'Reserve', 'aria-label':'Put ' + un.name + ' in reserve', onclick: () => { pushUndo(); toReserve(k, un); } }) ];
-    list.appendChild(el('div', { class:'unit' + (on ? ' on' : where === 'reserve' ? ' res' : '') }, [
+    const nDead = S.dead.filter(b => b.u === u).length;
+    list.appendChild(el('div', { class:'unit' + (on ? ' on' : where === 'reserve' ? ' res' : where === 'destroyed' ? ' dead' : '') }, [
       el('span', { class:'tag', style:'background:' + army.colour + ';color:' + fg, text: un.key }),
       el('span', { class:'nm', text: un.name }),
       el('div', { class:'acts' }, acts),
-      el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : where === 'reserve' ? ' · in reserve' : '') }) ]));
+      el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : where === 'reserve' ? ' · in reserve' : where === 'destroyed' ? ' · destroyed' : '') + (on && nDead ? ' · ' + nDead + ' destroyed' : '') }) ]));
   });
   if (!units.length) list.appendChild(el('p', { class:'hint', text:'No units yet. Open Edit roster below and add a line per unit.' }));
   box.appendChild(list);
@@ -1739,7 +1796,7 @@ function renderImport(box){
         if (res.errs.length){ msg.hidden = false; msg.textContent = res.errs.join(' '); return; }
         rememberSizes(r, res); pushUndo();
         const A = S.armies[target]; A.roster = lines.join('\n'); A.name = (IMP.name || '').trim() || A.name;
-        S.bases = S.bases.filter(b => b.army !== target); S.reserve = S.reserve.filter(b => b.army !== target); if (sel && sel.b && sel.b.army === target) setSel(null);
+        S.bases = S.bases.filter(b => b.army !== target); S.reserve = S.reserve.filter(b => b.army !== target); S.dead = S.dead.filter(b => b.army !== target); if (sel && sel.b && sel.b.army === target) setSel(null);
         setArmyView(target); IMP = null; save(); deployAllQuiet(target); importDone(target, r, res); renderArmies(); renderInspector(); dirty();
         setStatus(A.name + ' set as the ' + target + ' army and deployed in the ' + SIDE_NAME[A.side].toLowerCase());
       };
@@ -1753,7 +1810,7 @@ function renderImport(box){
   box.appendChild(det);
 }
 function deployAllQuiet(k){ const { units } = parseRoster(S.armies[k].roster);
-  for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key) && !S.reserve.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
+  for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key) && !S.reserve.some(b => b.u === k + ':' + un.key) && !S.dead.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
 
 // src/game.js
 /* ---------- games: rounds, phases and saved steps (docs/spec-rounds-and-replay.md) ----------
@@ -1790,10 +1847,13 @@ function rosterEntry(b){ const o = { u: b.u, army: b.army, label: b.label, w: b.
 function liveModels(g, prev){
   const out = {};
   for (const b of S.bases){ if (!g.roster[b.id]) g.roster[b.id] = rosterEntry(b); out[b.id] = modelOf(b); }
+  for (const b of S.dead){ if (!g.roster[b.id]) g.roster[b.id] = rosterEntry(b); out[b.id] = [gr1(b.x), gr1(b.y), Math.round(b.rot || 0), 0, 'destroyed']; }
   for (const b of S.reserve){ if (!g.roster[b.id]) g.roster[b.id] = rosterEntry(b); out[b.id] = [0, 0, 0, b.wounds !== undefined ? b.wounds : (b.maxW || 1), 'reserve']; }
   for (const id in g.roster) if (!out[id]){ const p = prev && prev[id]; out[id] = p ? (p[4] === 'destroyed' ? p : [p[0], p[1], p[2], 0, 'destroyed']) : [0, 0, 0, 0, 'destroyed']; }
   return out;
 }
+// The entries of 'now' that differ from 'prev'.
+function diffModels(prev, now){ const d = {}; for (const id in now) if (!prev[id] || JSON.stringify(prev[id]) !== JSON.stringify(now[id])) d[id] = now[id]; return d; }
 // The full position of every model at step n: step 0 with the changes of steps 1..n applied. Cached per game.
 const RESOLVED = new WeakMap();
 function resolveStep(g, n){
@@ -1822,8 +1882,7 @@ function saveStep(opts){
   const g = openGame(); if (!g) return { ok: false, error: 'No game is open. Start one in the Game tab.' };
   const slot = nextSlot(g); if (!slot) return { ok: false, error: 'The game is over: all ' + g.rounds + ' rounds are saved.' };
   pushUndo();
-  const prev = resolveStep(g, g.steps.length - 1), now = liveModels(g, prev), diff = {};
-  for (const id in now) if (!prev[id] || JSON.stringify(prev[id]) !== JSON.stringify(now[id])) diff[id] = now[id];
+  const prev = resolveStep(g, g.steps.length - 1), diff = diffModels(prev, liveModels(g, prev));
   const st = Object.assign(slot, { vp: { friendly: g.vp.friendly, hostile: g.vp.hostile }, models: diff });
   const note = opts && opts.note ? String(opts.note).slice(0, 200) : ''; if (note) st.note = note;
   g.steps.push(st); save();
@@ -1834,12 +1893,12 @@ function dropStep(){ const g = openGame(); if (!g || g.steps.length < 2) return 
 function setVP(army, v){ const g = openGame(); if (!g || !(army in g.vp)) return false; pushUndo(); g.vp[army] = Math.max(0, Math.min(999, Math.round(+v) || 0)); save(); return true; }
 // Put the board back to step n of a game: models on the table where they were, reserves in reserve, destroyed models off the board.
 function applyStep(g, n){
-  const at = resolveStep(g, n), onT = [], res = [];
+  const at = resolveStep(g, n), onT = [], res = [], dead = [];
   for (const id in at){ const r = g.roster[id], m = at[id]; if (!r) continue;
     const b = { id: +id, w: r.w, h: r.h, x: m[0], y: m[1], rot: m[2], colour: ((S.armies[r.army] || g.armies[r.army] || {}).colour) || '#a8348f', label: r.label, army: r.army, u: r.u };
     if (r.shape) b.shape = r.shape; if (r.maxW) b.maxW = r.maxW; if (m[3] !== (r.maxW || 1)) b.wounds = m[3];
-    if (!m[4]) onT.push(b); else if (m[4] === 'reserve'){ b.x = 0; b.y = 0; res.push(b); } }
-  S.bases = S.bases.filter(b => !b.u && !g.roster[b.id]).concat(onT); S.reserve = res;
+    if (!m[4]) onT.push(b); else if (m[4] === 'reserve'){ b.x = 0; b.y = 0; res.push(b); } else if (m[0] || m[1]){ b.wounds = 0; dead.push(b); } }
+  S.bases = S.bases.filter(b => !b.u && !g.roster[b.id]).concat(onT); S.reserve = res; S.dead = dead;
   S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...Object.keys(g.roster).map(Number)));
 }
 function gameSummary(g){
@@ -1848,6 +1907,51 @@ function gameSummary(g){
     steps: g.steps.map((st, i) => ({ step: i, label: stepLabel(g, st), vp: Object.assign({}, st.vp), changed: i ? Object.keys(st.models).length : undefined, note: st.note })),
     next: nx ? stepLabel(g, nx) : null, of: totalSteps(g) };
 }
+/* ---------- casualties ----------
+   b.wounds is the wounds a model has left; undefined means all of them (b.maxW, or 1). A model with no wounds left is destroyed:
+   it leaves the table into S.dead, keeping its last position, so a game step can record it and Restore can bring it back. */
+const woundsLeft = b => b.wounds !== undefined ? b.wounds : (b.maxW || 1);
+function destroyBase(b){
+  const i = S.bases.indexOf(b); if (i < 0) return false;
+  S.bases.splice(i, 1); b.wounds = 0; delete b._bad; S.dead.push(b); if (sel && sel.b === b) setSel(null); return true;
+}
+// Takes d wounds off a model (a negative d heals it), destroying it at 0. One undo step.
+function woundBase(b, d){
+  if (S.bases.indexOf(b) < 0) return null;
+  pushUndo(); const max = b.maxW || 1, w = Math.max(0, Math.min(max, woundsLeft(b) - d));
+  if (w === 0){ destroyBase(b); save(); return { wounds: 0, destroyed: true }; }
+  b.wounds = w === max ? undefined : w; save(); return { wounds: w, destroyed: false };
+}
+// Brings a destroyed model back where it was (or the nearest free spot) with all its wounds.
+function restoreBase(b){
+  const i = S.dead.indexOf(b); if (i < 0) return false;
+  S.dead.splice(i, 1); b.wounds = undefined; const p = findSpot(b, b.x, b.y); b.x = p[0]; b.y = p[1]; S.bases.push(b); return true;
+}
+
+/* ---------- correcting a saved step ----------
+   Edit puts the board at step n and keeps the live board aside in S.editing (saved with the board, so a reload can't lose it).
+   Saving rewrites step n from the board. 'keep' leaves later steps where they were by rewriting step n+1 against the new step n;
+   'carry' leaves later steps' changes as they are, so a model the edit moved stays moved until a later step moves it. */
+function beginEdit(g, n){
+  if (S.editing || !g.steps[n]) return false; pushUndo();
+  S.editing = { game: g.id, n, keep: JSON.parse(JSON.stringify({ bases: S.bases, reserve: S.reserve, dead: S.dead }, (k, v) => k === '_bad' ? undefined : v)), vp: Object.assign({}, g.steps[n].vp) };
+  applyStep(g, n); save(); return true;
+}
+function finishEdit(mode){
+  const E = S.editing; if (!E) return null; const g = S.games.find(x => x.id === E.game); pushUndo();
+  let changed = null;
+  if (g && g.steps[E.n] && mode !== 'cancel'){
+    const n = E.n, later = n + 1 < g.steps.length ? Object.assign({}, resolveStep(g, n + 1)) : null, prev = n ? resolveStep(g, n - 1) : resolveStep(g, 0);
+    const now = liveModels(g, prev), st = g.steps[n], before = n ? resolveStep(g, n) : null;
+    changed = before ? Object.keys(diffModels(before, now)).length : Object.keys(diffModels(resolveStep(g, 0), now)).length;
+    st.models = n ? diffModels(prev, now) : now; st.vp = { friendly: +E.vp.friendly || 0, hostile: +E.vp.hostile || 0 }; RESOLVED.delete(g);
+    if (later && mode === 'keep'){ g.steps[n + 1].models = diffModels(resolveStep(g, n), later); RESOLVED.delete(g); }
+  }
+  S.bases = E.keep.bases; S.reserve = E.keep.reserve; S.dead = E.keep.dead; S.editing = null; if (sel) setSel(null); save();
+  return { ok: true, changed };
+}
+function editVP(army, v){ if (!S.editing || !(army in S.editing.vp)) return false; S.editing.vp[army] = Math.max(0, Math.min(999, Math.round(+v) || 0)); save(); return true; }
+
 // Board loading: keep games that have the expected shape, drop anything else.
 function cleanGames(list){
   return (Array.isArray(list) ? list : []).filter(g => g && typeof g.id === 'string' && Array.isArray(g.steps) && g.steps.length && g.roster && typeof g.roster === 'object').map(g => ({
@@ -1859,36 +1963,68 @@ function cleanGames(list){
 
 // src/ui/game.js
 /* ---------- the Game tab and the game bar ---------- */
-function vpControl(g, army){
-  const A = S.armies[army] || g.armies[army] || {}, nm = A.name || army;
+// A score with − and +; with no onChange it only shows the score (a replayed step).
+function vpControl(g, army, value, onChange){
+  const A = S.armies[army] || g.armies[army] || {}, nm = A.name || army, ro = !onChange;
+  const b = (d, t, l) => Object.assign(el('button', { class:'btn', id:'vp-' + army + (d > 0 ? '-plus' : '-minus'), text: t, 'aria-label': l + nm, onclick: () => { onChange(value + d); renderGame(); } }), { disabled: ro });
+  if (ro) return el('span', { class:'vp', title: nm + ' victory points at this step' }, [ el('span', { class:'dot', style:'background:' + (A.colour || '#888'), 'aria-hidden':'true' }),
+    el('span', { class:'n', id:'vp-' + army, text: String(value), 'aria-label': nm + ' victory points at this step' }) ]);
   return el('span', { class:'vp', title: nm + ' victory points' }, [ el('span', { class:'dot', style:'background:' + (A.colour || '#888'), 'aria-hidden':'true' }),
-    el('button', { class:'btn', id:'vp-' + army + '-minus', text:'−', 'aria-label':'One victory point less for ' + nm, onclick: () => { setVP(army, g.vp[army] - 1); renderGame(); } }),
-    el('span', { class:'n', id:'vp-' + army, text: String(g.vp[army]), 'aria-label': nm + ' victory points' }),
-    el('button', { class:'btn', id:'vp-' + army + '-plus', text:'+', 'aria-label':'One victory point more for ' + nm, onclick: () => { setVP(army, g.vp[army] + 1); renderGame(); } }) ]);
+    b(-1, '−', 'One victory point less for '), el('span', { class:'n', id:'vp-' + army, text: String(value), 'aria-label': nm + ' victory points' }), b(1, '+', 'One victory point more for ') ]);
 }
+function slotText(g, st){ return st.round ? 'Round ' + st.round + ' · ' + (st.turn === 'attacker' ? 'Attacker' : 'Defender') + ' (' + ((g.armies[armyOfTurn(g, st.turn)] || {}).name || '') + ')' : 'before round 1'; }
+// The bar has three modes: playing (the phase to play, VP, Save step), replay (a saved step, read-only) and editing a saved step.
 function renderBar(g){
   const bar = $('gamebar'); bar.hidden = !g; if (!g) return;
-  const nx = nextSlot(g);
-  // The phase to play first, then the round and whose turn it is (cut short on a phone), then the count.
-  $('gb-phase').textContent = nx ? nx.phase : 'Game over';
-  $('gb-now').textContent = nx ? 'Round ' + nx.round + ' · ' + (nx.turn === 'attacker' ? 'Attacker' : 'Defender') + ' (' + ((g.armies[armyOfTurn(g, nx.turn)] || {}).name || '') + ')' : 'all ' + g.rounds + ' rounds saved';
-  $('gb-step').title = nx ? stepLabel(g, nx) : '';
-  $('gb-of').textContent = nx ? 'step ' + g.steps.length + ' of ' + (totalSteps(g) - 1) : '';
-  const vp = $('gb-vp'); vp.textContent = ''; vp.appendChild(vpControl(g, 'friendly')); vp.appendChild(vpControl(g, 'hostile'));
-  $('gb-save').disabled = !nx;
+  const E = S.editing && S.editing.game === g.id ? S.editing : null, rn = E ? null : replayStep(), last = g.steps.length - 1, nx = nextSlot(g);
+  bar.classList.toggle('replay', rn !== null); bar.classList.toggle('editing', !!E);
+  const shown = E ? g.steps[E.n] : rn !== null ? g.steps[rn] : nx;
+  $('gb-phase').textContent = E ? 'Editing step ' + E.n : shown ? (shown.round ? shown.phase : 'Deployment') : 'Game over';
+  $('gb-now').textContent = E ? stepLabel(g, g.steps[E.n]) : shown ? slotText(g, shown) : 'all ' + g.rounds + ' rounds saved';
+  $('gb-step').title = shown && !E ? (shown.round || rn === null ? stepLabel(g, shown) : 'Deployment') : '';
+  $('gb-of').textContent = E ? '' : rn !== null ? 'step ' + rn + ' of ' + last : nx ? 'step ' + g.steps.length + ' of ' + (totalSteps(g) - 1) : '';
+  // replay controls
+  const rp = $('gb-rp'); rp.textContent = ''; rp.hidden = !!E;
+  if (!E){ const pos = rn === null ? g.steps.length : rn;
+    rp.appendChild(Object.assign(el('button', { class:'btn', id:'rp-prev', text:'◀', title:'Show the step before', 'aria-label':'Show the step before', onclick: () => showStep(rn === null ? last : rn - 1) }), { disabled: rn === 0 }));
+    const sl = el('input', { type:'range', id:'rp-slider', min:'0', max: String(g.steps.length), step:'1', value: String(pos), 'aria-label':'Saved step to show; the far right is the game now',
+      oninput: e => { const v = +e.target.value; if (v >= g.steps.length) stopReplay(); else showStep(v); } }); rp.appendChild(sl);
+    rp.appendChild(Object.assign(el('button', { class:'btn', id:'rp-next', text:'▶', title:'Show the next step, moving the models', 'aria-label':'Show the next step', onclick: () => { if (rn >= last) stopReplay(); else showStep(rn + 1, true); } }), { disabled: rn === null }));
+    rp.appendChild(el('button', { class:'btn', id:'rp-play', text: playing() ? '❚❚' : '▶▶', title: playing() ? 'Pause' : 'Play the game through, step by step', 'aria-label': playing() ? 'Pause' : 'Play the game', onclick: play })); }
+  // victory points
+  const vp = $('gb-vp'); vp.textContent = '';
+  for (const k of ['friendly', 'hostile']) vp.appendChild(E ? vpControl(g, k, E.vp[k], v => editVP(k, v)) : rn !== null ? vpControl(g, k, g.steps[rn].vp[k], null) : vpControl(g, k, g.vp[k], v => setVP(k, v)));
+  // actions
+  const act = $('gb-act'); act.textContent = '';
+  if (E){ const later = E.n < last;
+    act.appendChild(el('button', { class:'btn primary', id:'ed-keep', text: later ? 'Save, later steps unchanged' : 'Save changes', title:'Rewrite this step from the board. Later steps keep their positions.', onclick: () => endEdit('keep') }));
+    if (later) act.appendChild(el('button', { class:'btn', id:'ed-carry', text:'Save and carry forward', title:'Rewrite this step. Models the later steps did not move stay where you put them.', onclick: () => endEdit('carry') }));
+    act.appendChild(el('button', { class:'btn', id:'ed-cancel', text:'Cancel', onclick: () => endEdit('cancel') })); }
+  else if (rn !== null){
+    act.appendChild(el('button', { class:'btn', id:'rp-edit', text:'Edit this step', title:'Put the board at this step to correct it', onclick: () => { const n = rn; stopReplay(); if (beginEdit(g, n)){ renderGame(); renderArmies(); renderInspector(); dirty(); setStatus('Editing ' + stepLabel(g, g.steps[n]) + '. Move, wound or restore models, then save.'); } } }));
+    act.appendChild(el('button', { class:'btn primary', id:'rp-live', text:'Back to game', onclick: stopReplay })); }
+  else act.appendChild(Object.assign(el('button', { class:'btn primary', id:'gb-save', text:'Save step', title:'Save where every model is now as the end of this phase', onclick: () => {
+    const r = saveStep(); if (!r.ok){ setStatus(r.error, true); return; } renderGame();
+    setStatus('Saved ' + r.label + ' (' + r.changed + (r.changed === 1 ? ' model' : ' models') + ' changed).' + (r.next ? '' : ' That was the last phase of the game.')); } }), { disabled: !nx }));
 }
+function endEdit(mode){ const r = finishEdit(mode); renderGame(); renderArmies(); renderInspector(); dirty();
+  setStatus(mode === 'cancel' ? 'Edit cancelled. The board is back as it was.' : 'Step saved' + (r && r.changed !== null ? ' (' + r.changed + (r.changed === 1 ? ' model' : ' models') + ' changed)' : '') + '. The board is back as it was before the edit.'); }
 function renderGame(){
   const g = openGame(), box = $('game-box'); renderBar(g); if (!box) return; box.textContent = '';
   if (g){
     box.appendChild(el('p', { class:'hint', text: g.name + ' · attacker: ' + (g.armies[g.attacker] || {}).name + ' · ' + g.phases.join(', ') }));
-    box.appendChild(el('p', { class:'hint', text: 'Play the phase shown in the bar above the board, then press Save step. The planner keeps where every model is at the end of each phase. Victory points are saved with each step.' }));
+    const E = S.editing, rn = replayStep();
+    box.appendChild(el('p', { class:'hint', text: E ? 'You are correcting step ' + E.n + '. Move, wound or restore models, then save it in the bar above the board, or cancel. Your board as it was before the edit comes back either way.'
+      : 'Play the phase shown in the bar above the board, then press Save step. Victory points are saved with each step. Tap a step below, or use ◀ ▶ in the bar, to see it again; ▶▶ plays the game through.' }));
     const list = el('div', { class:'steps', id:'game-steps' });
-    g.steps.forEach((st, i) => list.appendChild(el('div', { class:'st' }, [ el('span', { class:'i', text: String(i) }), el('span', { class:'l', text: stepLabel(g, st) + (st.note ? ' · ' + st.note : '') }),
-      el('span', { class:'s', text: (i ? Object.keys(st.models).length + ' moved · ' : '') + st.vp.friendly + '–' + st.vp.hostile + ' VP' }) ])));
-    box.appendChild(list); setTimeout(() => { list.scrollTop = list.scrollHeight; }, 0);
+    g.steps.forEach((st, i) => list.appendChild(Object.assign(el('button', { class:'st' + (rn === i || (E && E.n === i) ? ' cur' : ''), 'aria-label':'Show step ' + i + ': ' + stepLabel(g, st), onclick: () => showStep(i) }, [
+      el('span', { class:'i', text: String(i) }), el('span', { class:'l', text: stepLabel(g, st) + (st.note ? ' · ' + st.note : '') }),
+      el('span', { class:'s', text: (i ? Object.keys(st.models).length + ' changed · ' : '') + st.vp.friendly + '–' + st.vp.hostile + ' VP' }) ]), { disabled: !!E })));
+    box.appendChild(list); setTimeout(() => { const c = list.querySelector('.cur'); if (c) c.scrollIntoView({ block:'nearest' }); else list.scrollTop = list.scrollHeight; }, 0);
     box.appendChild(el('div', { class:'row' }, [
-      Object.assign(el('button', { class:'btn', id:'game-drop', text:'Delete last step', title:'Take the last saved step off the game. The board stays as it is.', onclick: () => { if (dropStep()){ renderGame(); setStatus('Last step deleted'); } } }), { disabled: g.steps.length < 2 }),
-      el('button', { class:'btn', id:'game-close', text:'Close game', title:'Leave the game; it stays saved with this board', onclick: () => { pushUndo(); S.game = null; save(); renderGame(); setStatus('Game closed. Reopen it from the Game tab.'); } }) ]));
+      Object.assign(el('button', { class:'btn', id:'game-drop', text:'Delete last step', title:'Take the last saved step off the game. The board stays as it is.', onclick: () => { if (dropStep()){ renderGame(); setStatus('Last step deleted'); } } }), { disabled: g.steps.length < 2 || !!E }),
+      el('button', { class:'btn', id:'game-copy', text:'Copy game', title:'Copy the game and the table as text, for another device or an analysis AI', onclick: copyGame }),
+      Object.assign(el('button', { class:'btn', id:'game-close', text:'Close game', title:'Leave the game; it stays saved with this board', onclick: () => { pushUndo(); S.game = null; save(); renderGame(); setStatus('Game closed. Reopen it from the Game tab.'); } }), { disabled: !!E }) ]));
   } else {
     box.appendChild(el('p', { class:'hint', text: 'Record a game phase by phase. Deploy both armies first: where the models are when you start is step 0. A game has ' + 5 + ' battle rounds, each the attacker\'s turn then the defender\'s.' }));
     const atk = el('select', { id:'game-attacker', 'aria-label':'Attacker' }, ['friendly', 'hostile'].map(k => el('option', { value: k, text: 'Attacker: ' + S.armies[k].name })));
@@ -1896,7 +2032,7 @@ function renderGame(){
     box.appendChild(el('div', { class:'row' }, [ atk ]));
     const ph = el('input', { type:'text', id:'game-phases', value: DEFAULT_PHASES.join(', '), 'aria-label':'Phases, separated by commas' });
     box.appendChild(el('div', { class:'row' }, [ el('label', { for:'game-phases', text:'Phases' }), ph ]));
-    box.appendChild(el('p', { class:'hint', text: 'The 10th-edition phases; set them to your 11th-edition rules. The attacker is normally the army in the red zone.' }));
+    box.appendChild(el('p', { class:'hint', text: 'The 11th-edition phases. The attacker is normally the army in the red zone.' }));
     box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn primary', id:'game-start', text:'Start game', onclick: () => {
       const r = startGame({ attacker: atk.value, phases: ph.value.split(',') });
       if (!r.ok){ setStatus(r.error, true); return; } renderGame(); setStatus('Game started. Deployment is step 0; play ' + r.game.next + '.'); } }) ]));
@@ -1910,8 +2046,83 @@ function renderGame(){
       el('button', { class:'btn danger', text:'Delete', 'aria-label':'Delete ' + o.name, onclick: () => { pushUndo(); S.games = S.games.filter(x => x !== o); save(); renderGame(); setStatus(o.name + ' deleted. Undo brings it back.'); } }) ]));
   }
 }
-$('gb-save').addEventListener('click', () => { const r = saveStep(); if (!r.ok){ setStatus(r.error, true); return; } renderGame();
-  setStatus('Saved ' + r.label + ' (' + r.changed + (r.changed === 1 ? ' model' : ' models') + ' changed).' + (r.next ? '' : ' That was the last phase of the game.')); });
+
+// A game as text: the game itself plus the read-only table, so it can be loaded on another device (Save tab → Load from text) or read by an analysis AI.
+function gameText(g){ return JSON.stringify({ kind: 'tabletop-base-planner game', note: 'Load with Save → Load from text. Format: docs/agent-briefing.md (GAMES). Millimetres, origin top-left, y down, red zone at the top.', mapId: g.mapId, game: g, table: tableData() }); }
+function copyGame(){ const g = openGame(); if (!g) return; const t = gameText(g); $('io').value = t;
+  const done = () => setStatus('Game copied (' + Math.round(t.length/1024) + ' KB)'), fb = () => { setStatus('Game text is in the box in the Save tab. Copy it from there.'); };
+  try { navigator.clipboard.writeText(t).then(done, fb); } catch(e){ fb(); } }
+// Loading a copied game: it joins this board's games (as a copy if this board already has it), with its armies and layout, opened at its last step.
+function loadGame(o){
+  const g = cleanGames([o.game])[0]; if (!g) return { ok: false, error: 'That game text has no steps.' };
+  pushUndo(); if (S.games.some(x => x.id === g.id)){ g.id = 'g' + Date.now().toString(36); g.name += ' (copy)'; }
+  for (const k of ['friendly', 'hostile']) if (g.armies[k]) Object.assign(S.armies[k], g.armies[k]);
+  if (g.mapId && g.mapId !== S.mapId && MAPS[g.mapId]){ S.mapId = g.mapId; setM(MAPS[g.mapId]); loadTerrain(); buildMapSelect(); fit(); }
+  S.games.push(g); S.game = g.id; S.editing = null; applyStep(g, g.steps.length - 1); save(); renderGame(); renderArmies(); renderInspector(); dirty();
+  return { ok: true, id: g.id, steps: g.steps.length };
+}
+
+// src/ui/replay.js
+/* ---------- replay: a read-only view of a game's saved steps ----------
+   While a step is shown, the board draws that step's models instead of the live ones (draw() swaps them in and back),
+   so rings, coherency, engagement and sight all work on the step. Nothing on the live board changes. Any change to the
+   live board (anything that makes an undo step) ends the replay. */
+let RP = null;          // { g, n, t } — step n shown; t < 1 while moving from step n-1 to step n
+let playT = 0, animT = 0;
+const replayOn = () => !!RP;
+const replayStep = () => RP ? RP.n : null;
+const MOVE_MS = 800, HOLD_MS = 450;
+function colourOf(g, army){ return ((S.armies[army] || g.armies[army] || {}).colour) || '#888'; }
+function baseOf(g, id, m){ const r = g.roster[id], b = { id: +id, w: r.w, h: r.h, x: m[0], y: m[1], rot: m[2], colour: colourOf(g, r.army), label: r.label, army: r.army, u: r.u };
+  if (r.shape) b.shape = r.shape; if (r.maxW) b.maxW = r.maxW; if (m[3] < (r.maxW || 1)) b.wounds = m[3]; return b; }
+const onTable = m => m && !m[4];
+// The models to draw: step n, or part of the way from step n-1 to n while playing.
+function replayBases(){
+  const g = RP.g, B = resolveStep(g, RP.n), A = RP.n ? resolveStep(g, RP.n - 1) : null, t = RP.t, out = [];
+  for (const id in B){ if (!g.roster[id]) continue; const b = B[id], a = A && A[id];
+    if (t >= 1 || !a){ if (onTable(b)) out.push(baseOf(g, id, b)); continue; }
+    if (onTable(a) && onTable(b)){ let dr = ((b[2] - a[2] + 540) % 360) - 180; out.push(baseOf(g, id, [a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t, a[2] + dr*t, t < 0.5 ? a[3] : b[3]])); }
+    else if (onTable(b) ? t >= 0.5 : (onTable(a) && t < 0.5)) out.push(baseOf(g, id, onTable(b) ? b : a));
+  }
+  return out;
+}
+// Under the bases: faded outlines of models destroyed by this step, and a line from where each moved model was at the step before.
+function drawReplayUnder(ctx, px){
+  const g = RP.g, B = resolveStep(g, RP.n), A = RP.n ? resolveStep(g, RP.n - 1) : null;
+  ctx.save(); ctx.setLineDash([3*px, 3*px]); ctx.lineWidth = 1.4*px;
+  for (const id in B){ const m = B[id], r = g.roster[id]; if (!r || m[4] !== 'destroyed' || !(m[0] || m[1])) continue;
+    ctx.beginPath(); ctx.ellipse(m[0], m[1], r.w/2, r.h/2, m[2]*Math.PI/180, 0, 2*Math.PI); ctx.fillStyle = 'rgba(30,30,30,.12)'; ctx.fill(); ctx.strokeStyle = 'rgba(30,30,30,.55)'; ctx.stroke(); }
+  ctx.setLineDash([]);
+  if (A) for (const id in g.steps[RP.n].models){ const a = A[id], b = B[id]; if (!onTable(a) || !onTable(b) || Math.hypot(b[0] - a[0], b[1] - a[1]) < 1) continue;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 3.2*px; ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.stroke(); ctx.lineWidth = 1.8*px; ctx.strokeStyle = colourOf(g, g.roster[id].army); ctx.stroke(); }
+  ctx.restore();
+}
+// Over the bases: each unit that moved gets its longest model move, in inches.
+function drawReplayOver(){
+  if (!RP.n || RP.t < 1) return; const g = RP.g, B = resolveStep(g, RP.n), A = resolveStep(g, RP.n - 1), units = {};
+  for (const id in g.steps[RP.n].models){ const a = A[id], b = B[id], r = g.roster[id]; if (!r || !r.u || !onTable(a) || !onTable(b)) continue;
+    const d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d < 1) continue; const U = units[r.u] = units[r.u] || { d: 0, x: 0, y: 0, n: 0 };
+    U.d = Math.max(U.d, d); U.x += b[0]; U.y += b[1]; U.n++; }
+  for (const u in units){ const U = units[u]; tag(u.split(':')[1] + ' ' + (U.d/IN).toFixed(1) + '"', U.x/U.n, U.y/U.n - 12); }
+}
+function showStep(n, animate){
+  const g = openGame(); if (!g || S.editing) return false; cancelAnimationFrame(animT);
+  n = Math.max(0, Math.min(g.steps.length - 1, n)); if (sel) setSel(null);
+  RP = { g, n, t: animate && n > 0 ? 0 : 1 }; renderInspector(); renderGame(); dirty();
+  if (RP.t < 1){ const t0 = performance.now(); const tick = now => { if (!RP) return; RP.t = Math.min(1, (now - t0)/MOVE_MS); dirty(); if (RP.t < 1) animT = requestAnimationFrame(tick); }; animT = requestAnimationFrame(tick); }
+  return true;
+}
+function stopReplay(){ if (!RP) return; clearTimeout(playT); cancelAnimationFrame(animT); RP = null; renderGame(); dirty(); }
+const playing = () => !!(RP && RP.playing);
+// Play: moves through the steps from the one shown (from the start if the last one is shown), and stops at the last.
+function play(){
+  const g = openGame(); if (!g || S.editing) return;
+  if (playing()){ clearTimeout(playT); RP.playing = false; renderGame(); return; }
+  let n = RP && RP.n < g.steps.length - 1 ? RP.n : 0; showStep(n); RP.playing = true; renderGame();
+  const next = () => { if (!RP || !RP.playing) return; if (RP.n >= g.steps.length - 1){ RP.playing = false; renderGame(); return; }
+    showStep(RP.n + 1, true); RP.playing = true; renderGame(); playT = setTimeout(next, MOVE_MS + HOLD_MS); };
+  playT = setTimeout(next, HOLD_MS);
+}
 
 // src/ui/watch.js
 /* ---------- watch ---------- */
@@ -1968,8 +2179,9 @@ function loadText(txt){
       const id = 'custom-' + Date.now().toString(36); MAPS[id] = normMap(id, o); pushUndo(); S.custom[id] = o; S.mapId = id; setM(MAPS[id]); loadTerrain();
       buildMapSelect(); select(null); for (const b of S.bases){ const p = clampToBoard(b, b.x, b.y, b.rot); b.x = p[0]; b.y = p[1]; } fit(); save(); ioMsg(''); setStatus('Map "' + M.name + '" added'); return;
     }
+    if (o && o.game && !Array.isArray(o.bases)){ const r = loadGame(o); if (!r.ok){ ioMsg(r.error); return; } ioMsg(''); setStatus('Game loaded and opened at its last step'); return; }
     if (o && Array.isArray(o.bases)){ pushUndo(); applyState(o); fit(); save(); ioMsg(''); setStatus('Board loaded'); return; }
-    ioMsg('That JSON is neither a saved board nor a map. A board has "bases"; a map has "terrain".');
+    ioMsg('That JSON is not a saved board, a game or a map. A board has "bases", a game has "game" and a map has "terrain".');
   } catch(e){ ioMsg(e.message); }
 }
 $('io-copy').addEventListener('click', () => { const t = exportText(); $('io').value = t;
@@ -2014,7 +2226,7 @@ function deleteBoard(id){ const i = BX.order.indexOf(id); if (i < 0) return; con
   if (BX.current === id){ BX.current = BX.order[Math.max(0, i-1)]; saveIndex(); openBoard(BX.current); } else { saveIndex(); renderBoards(); }
   setStatus(nm + ' deleted'); }
 $('bd-new').addEventListener('click', () => { saveNow();
-  const o = JSON.parse(snapshot()); o.bases = []; o.reserve = []; o.markers = []; o.games = []; o.game = null; o.terrain = {}; o.nextId = 1;
+  const o = JSON.parse(snapshot()); o.bases = []; o.reserve = []; o.dead = []; o.markers = []; o.games = []; o.game = null; o.terrain = {}; o.nextId = 1;
   const id = createBoard('Board ' + (BX.order.length + 1), JSON.stringify(o)); saveIndex(); openBoard(id); setStatus('New board with the same armies. Deploy them from the Armies tab.'); });
 $('bd-dup').addEventListener('click', () => { saveNow(); const id = createBoard((BX.boards[BX.current] || { name:'Board' }).name + ' copy', snapshot()); saveIndex(); openBoard(id); });
 
@@ -2022,6 +2234,7 @@ $('bd-dup').addEventListener('click', () => { saveNow(); const id = createBoard(
 /* ---------- keyboard ---------- */
 window.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (replayOn()) return;   // a replayed step is read-only
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); $('btn-undo').click(); return; }
   if (sel && sel.type === 'marker'){ const m = sel.m, st = e.shiftKey ? IN : 1, mv = { ArrowLeft:[-st,0], ArrowRight:[st,0], ArrowUp:[0,-st], ArrowDown:[0,st] }[e.key];
     if (mv){ e.preventDefault(); pushUndo(); m.x += mv[0]; m.y += mv[1]; save(); dirty(); } else if (e.key === 'Delete' || e.key === 'Backspace'){ e.preventDefault(); removeMarker(m); } return; }
@@ -2143,15 +2356,19 @@ function setLayout(id){
   setMap(id); saveNow(); return { ok: true, id, name: M.name, check: check() };   // bases stay where they were, so some may now overlap the new terrain
 }
 function units(army){
-  const out = {}, res = {};
+  const out = {}, res = {}, dead = {};
+  for (const b of S.dead) if (b.u && (!army || b.army === army)) (dead[b.u] = dead[b.u] || []).push(b);
   for (const b of S.bases) if (b.u && (!army || b.army === army)) (out[b.u] = out[b.u] || []).push(b);
   for (const b of S.reserve) if (b.u && (!army || b.army === army)) (res[b.u] = res[b.u] || []).push(b);
   const list = Object.keys(out).map(u => { const G = out[u], c = centre(G), key = u.slice(u.indexOf(':') + 1);
     const un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
-    return { u, army: G[0].army, name: un ? un.name : key, where: 'table', models: G.length, move_in: moveOf(u), centre: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 },
-      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot, wounds: b.maxW || 1 })) }; });
-  return list.concat(Object.keys(res).map(u => { const G = res[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
-    return { u, army: G[0].army, name: un ? un.name : key, where: 'reserve', models: G.length, move_in: moveOf(u), centre: null,
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'table', models: G.length, destroyed: (dead[u] || []).length, move_in: moveOf(u), centre: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 },
+      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot, wounds: b.maxW || 1, woundsLeft: woundsLeft(b) })) }; });
+  const gone = Object.keys(dead).filter(u => !out[u] && !res[u]).map(u => { const G = dead[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'destroyed', models: 0, destroyed: G.length, move_in: moveOf(u), centre: null,
+      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot, wounds: b.maxW || 1, woundsLeft: 0 })) }; });
+  return list.concat(gone, Object.keys(res).map(u => { const G = res[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'reserve', models: G.length, destroyed: (dead[u] || []).length, move_in: moveOf(u), centre: null,
       bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), wounds: b.maxW || 1 })) }; }));
 }
 // Reserves: take a unit off the table (or put an undeployed roster unit straight into reserve), and bring it back.
@@ -2298,6 +2515,21 @@ function check(){
 function image(opts){ const o = opts || {}; return boardImage(o.pxPerInch || 16, o.caption || ''); }
 function undoLast(){ const b = $('btn-undo'); if (b.disabled) return { ok: false, error: 'Nothing to undo' }; b.click(); return { ok: true }; }
 
+// Casualties: wounds on one model, destroying whole units, restoring destroyed models.
+function apiWound(ref, n){
+  const b = S.bases.find(x => +x.id === +ref); if (!b) return { ok: false, error: 'Give the id of a model on the table (planner.units() lists them)' };
+  const d = n === undefined ? 1 : Math.round(+n); if (!isFinite(d)) return { ok: false, error: 'n must be a number of wounds' };
+  const r = woundBase(b, d); changed(); renderGame(); return { ok: true, id: b.id, wounds: r.wounds, of: b.maxW || 1, destroyed: r.destroyed };
+}
+function apiDestroy(ref){
+  const G = refBases(ref).filter(b => S.bases.indexOf(b) >= 0); if (!G.length) return { ok: false, error: 'No model or unit "' + ref + '" on the table' };
+  pushUndo(); G.forEach(destroyBase); changed(); renderGame(); return { ok: true, destroyed: G.map(b => b.id) };
+}
+function apiRestore(ref){
+  const G = /^\d+$/.test(String(ref)) ? S.dead.filter(b => +b.id === +ref) : S.dead.filter(b => b.u === ref); if (!G.length) return { ok: false, error: 'Nothing destroyed matches "' + ref + '"' };
+  pushUndo(); G.forEach(restoreBase); changed(); renderGame(); return { ok: true, restored: G.map(b => b.id), check: check() };
+}
+
 // Games: rounds and phases, with a saved step per phase (docs/spec-rounds-and-replay.md).
 function apiGame(){ const g = openGame(); return g ? Object.assign({ ok: true }, gameSummary(g)) : { ok: false, error: 'No game is open', games: S.games.map(x => ({ id: x.id, name: x.name, steps: x.steps.length })) }; }
 function apiStartGame(opts){ if (openGame()) return { ok: false, error: 'A game is already open. Close it in the Game tab first.' }; const r = startGame(opts); if (r.ok){ renderGame(); changed(); } return r; }
@@ -2310,6 +2542,7 @@ const planner = Object.freeze({ version: API_VERSION, getBoard: wrap(getBoard), 
   setLayout: wrap(setLayout), units: wrap(units), importList: wrap(importList), placeUnit: wrap(placeUnit), moveUnit: wrap(moveUnit), toContact: wrap(toContact),
   measure: wrap(measure), seen: wrap(seen), canPlace: wrap(canPlace), check: wrap(check), image: wrap(image), undo: wrap(undoLast),
   toReserve: wrap(apiToReserve), arrive: wrap(apiArrive), markers: wrap(apiMarkers), addMarker: wrap(apiAddMarker), moveMarker: wrap(apiMoveMarker), removeMarker: wrap(apiRemoveMarker),
+  wound: wrap(apiWound), destroy: wrap(apiDestroy), restore: wrap(apiRestore),
   game: wrap(apiGame), startGame: wrap(apiStartGame), saveStep: wrap(apiSaveStep), setVP: wrap(apiSetVP) });
 window.planner = planner;
 })();

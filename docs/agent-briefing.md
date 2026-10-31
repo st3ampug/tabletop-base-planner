@@ -34,6 +34,7 @@ THE BOARD TEXT (what I paste to you: Save tab → Copy board)
 - Millimetres (25.4 mm = 1"). The origin is the top-left corner and y increases downwards. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red (attacker) zone at the top and blue (defender) at the bottom. My army is "friendly" and its zone is in armies.friendly.side.
 - bases[]: id; w and h (mm, w ≥ h, w = h for round); x and y (the centre); rot (degrees clockwise, turns the long axis w); shape "hull" for vehicles; label; army ("friendly" or "hostile"); u (unit key, e.g. "friendly:LUC"); maxW (wounds per model, left out when 1).
 - reserve[]: bases of units in reserve, in the same form; their positions mean nothing until they arrive.
+- wounds on a base: the wounds it has left, only when it has lost some. dead[]: destroyed models, in the same form, at the position where they fell. Neither reserve nor dead models are on the table.
 - markers[]: { id, kind: "tunnel"|"deep-strike"|"objective"|"note", x, y, d (diameter in mm), ring (inches from its edge), label }. Markers don't block movement.
 - armies.friendly / armies.hostile: name, colour, side ("blue" or "red"), roster (the format above).
 - games[] and game (the id of the open game, or null): a recorded game. See GAMES below.
@@ -51,6 +52,8 @@ GAMES (a board can hold recorded games; I save a step at the end of each phase)
 - A model is [x, y, rot, wounds left] while on the table, or [x, y, rot, wounds, "reserve"|"destroyed"]. Destroyed models keep the position where they were last seen (wounds 0); reserve positions mean nothing.
 - To know where everything was at step n, start from step 0 and apply steps 1..n in order, each entry replacing the model's earlier entry. A step's label is "Round 2 · Attacker (name) · Shooting"; each round is the attacker's turn, then the defender's.
 - The rules aren't enforced: a step only records where the models were and the score I entered.
+- I may paste a game on its own (Game tab → Copy game): { kind: "tabletop-base-planner game", mapId, game, table }. It's the same game object, with the table description; there are no live bases.
+- editing (on a board): a step being corrected. The bases on the board then are that step's, and editing.keep holds my board as it was; ignore it.
 
 DRIVING THE PAGE (when you can run code; details and every report field in docs/api.md)
 - Set up: planner.setLayout(planner.findLayout('TAH', 'REC', 1)); planner.importList(text, { army: 'friendly', sizes: { 'Chaos Rhino': 'hull 117x74' } }) imports and deploys a list (it refuses and names any unit without a base size); planner.loadBoard(text) loads a board I gave you.
@@ -58,6 +61,7 @@ DRIVING THE PAGE (when you can run code; details and every report field in docs/
 - Ask: planner.measure(a, b) gives base-edge distance and whether the line crosses a wall; planner.seen(unit, { by: 'hostile' }) gives visibility; planner.check() lists illegal positions, coherency problems and engaged pairs. Run check() after every change and fix anything illegal unless I asked for it.
 - Record: planner.getBoard() for board text, planner.image({ caption }) for a picture (with the runner, ctx.save(name, { caption }) writes both).
 - Reserves and markers: planner.toReserve(unit), planner.arrive(unit, x, y, { exact: false }); planner.addMarker({ kind: 'tunnel', x, y, label, ring_in }), and measure from 'marker:<id>'.
+- Casualties: planner.wound(id, n), planner.destroy(unitOrId), planner.restore(unitOrId).
 - Games: planner.startGame({ attacker, phases }) starts one from the current positions; planner.saveStep({ note, vp: { friendly, hostile } }) saves the phase shown by planner.game() and moves on; planner.setVP(army, n).
 - Units are keys like "friendly:LUC"; planner.units() lists them with where they are and their Move from the data (move_in). Each change is one undo step (planner.undo()).
 

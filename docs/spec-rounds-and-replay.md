@@ -1,13 +1,17 @@
 # Spec: game rounds, wounds and replay
 
-**Status:** agreed with the owner on 30 October 2026. Built on 31 October 2026: step 2 (wound data), step 3 (game model) and step 8 (VP counter). Next: step 4, casualties.
+**Status:** agreed with the owner on 30 October 2026. Built on 31 October 2026: steps 2–6 and 8 (wound data, game model, casualties, replay, game export and import, VP counter). The owner confirmed the default phases are the 11th-edition ones. Next: step 7, reserves, deep strike and transports.
 
 **As built (differences from the plan below):**
 - Wounds are written into the roster as an optional token after the label, `1 @ 50 LUC w6`, and bases carry `maxW` (left out when 1). A unit with no Wounds in the data is flagged in the import preview and counts as 1. The Selected tab can correct a model's wounds.
 - A model in a step is `[x, y, rot, wounds]` on the table; the state is a fifth field only when it isn't the table (`"reserve"` or `"destroyed"`), which keeps games small. A full 51-step game where all 95 example models move every step is about 100 KB.
 - `board.games[]` plus `board.game` (the open game's id). Games are part of the board, so undo covers saving a step.
 - The game bar has the phase to play, VP − and +, and Save step; stepping, scrubbing and play come with replay. The Game tab lists the steps and can delete the last step, close the game, and open a closed game (which puts the models back where its last step had them).
-- `window.planner` gained `game()`, `startGame()`, `saveStep()` and `setVP()`. **Owner:** Balint. **Read first:** `CLAUDE.md`.
+- `window.planner` gained `game()`, `startGame()`, `saveStep()`, `setVP()`, `wound()`, `destroy()` and `restore()`.
+- Casualties: destroyed models go to `board.dead[]` with their last position, so Restore and the steps both have it. A unit with every model destroyed shows as destroyed in the Armies tab.
+- Replay: the bar's ◀ ▶, slider and ▶▶ show saved steps read-only; the far right of the slider is the live board. Trails, the longest move per unit, and faded outlines for destroyed models. Any change that makes an undo step ends replay.
+- Correcting a step: "Edit this step" stores the live board in `board.editing` (so a reload can't lose it), puts the board at the step, then rewrites it with either "later steps unchanged" (the next step is rewritten against the new one) or "carry forward" (later steps' changes stay as they were). The step's score can be corrected too.
+- Export: Game tab → Copy game gives `{ kind, mapId, game, table }`; Save → Load from text accepts it and adds the game to the board, with its armies and layout, opened at its last step. **Owner:** Balint. **Read first:** `CLAUDE.md`.
 
 ## Goal
 

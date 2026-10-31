@@ -37,7 +37,7 @@ function deleteBoard(id){ const i = BX.order.indexOf(id); if (i < 0) return; con
   if (BX.current === id){ BX.current = BX.order[Math.max(0, i-1)]; saveIndex(); openBoard(BX.current); } else { saveIndex(); renderBoards(); }
   setStatus(nm + ' deleted'); }
 $('bd-new').addEventListener('click', () => { saveNow();
-  const o = JSON.parse(snapshot()); o.bases = []; o.reserve = []; o.markers = []; o.games = []; o.game = null; o.terrain = {}; o.nextId = 1;
+  const o = JSON.parse(snapshot()); o.bases = []; o.reserve = []; o.dead = []; o.markers = []; o.games = []; o.game = null; o.terrain = {}; o.nextId = 1;
   const id = createBoard('Board ' + (BX.order.length + 1), JSON.stringify(o)); saveIndex(); openBoard(id); setStatus('New board with the same armies. Deploy them from the Armies tab.'); });
 $('bd-dup').addEventListener('click', () => { saveNow(); const id = createBoard((BX.boards[BX.current] || { name:'Board' }).name + ' copy', snapshot()); saveIndex(); openBoard(id); });
 

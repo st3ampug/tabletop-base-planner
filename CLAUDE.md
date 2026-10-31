@@ -44,8 +44,9 @@ npm test                         # builds into build/ and runs all four
 | `ui/panel.js` | The side panel: inspector, size chips, layout picker and thumbnails, rules settings |
 | `armies.js` | Roster format parser `parseRoster()`, deployment into zones `deployUnit()` / `deployAll()`, swap sides, the Armies tab |
 | `import.js` | `readList()`: parses Warhammer-app exports and plain text lists and fuzzy-matches units to the catalogue; the import preview |
-| `game.js` | Games (`S.games`, `S.game`): `startGame()`, `saveStep()`, `nextSlot()`, `resolveStep()` (step 0 plus the diffs, cached), `applyStep()`, `setVP()`. Model format in `docs/agent-briefing.md` |
-| `ui/game.js` | The Game tab and the game bar under the header (phase to play, VP − and +, Save step) |
+| `game.js` | Games (`S.games`, `S.game`): `startGame()`, `saveStep()`, `nextSlot()`, `resolveStep()` (step 0 plus the diffs, cached), `applyStep()`, `setVP()`, correcting a step (`beginEdit()`/`finishEdit()`, state in `S.editing`); casualties (`woundBase()`, `destroyBase()`, `restoreBase()`, destroyed models in `S.dead`). Model format in `docs/agent-briefing.md` |
+| `ui/game.js` | The Game tab and the game bar under the header: playing (phase, VP, Save step), replay and editing modes; Copy game and `loadGame()` |
+| `ui/replay.js` | Replay of saved steps: `showStep()`, `play()`, `stopReplay()`. `draw()` swaps the step's models into `S.bases` while it draws, so rings, coherency and sight work on the step; any undo step ends the replay |
 | `ui/watch.js` | The Sight button, watch toggles (`S.los.watch`) and the line-of-sight settings |
 | `ui/saveload.js` | Board text export (`exportText()` adds a read-only `table` block), import |
 | `ui/boards.js` | Named boards in `localStorage` |
@@ -88,6 +89,6 @@ Rules for the modules:
 
 ## Open work
 
-- `docs/spec-rounds-and-replay.md`: wounds data, the game model (start, save steps, reload) and the VP counter are built. Next: casualties (taking wounds, with `b.wounds` already saved per base and recorded in steps), then replay, game export, and transports.
+- `docs/spec-rounds-and-replay.md`: built except step 7 (reserve and deep-strike placement aids, embarking and disembarking). The move budget from `docs/spec-agent-api.md` can now use the steps.
 - `docs/spec-agent-api.md`: the agent interface. A, B, D and most of C are built. Reserves live in `S.reserve` (bases off the table, so collision, sight and coherency never see them); Move comes from the catalogue (`moveOf(u)`, the slowest datasheet). The move budget (flagging over-long moves) waits for rounds and replay.
 - Known limits: no terrain height (line of sight is top-down) or objective control.

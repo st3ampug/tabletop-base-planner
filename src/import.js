@@ -161,7 +161,7 @@ function renderImport(box){
         if (res.errs.length){ msg.hidden = false; msg.textContent = res.errs.join(' '); return; }
         rememberSizes(r, res); pushUndo();
         const A = S.armies[target]; A.roster = lines.join('\n'); A.name = (IMP.name || '').trim() || A.name;
-        S.bases = S.bases.filter(b => b.army !== target); S.reserve = S.reserve.filter(b => b.army !== target); if (sel && sel.b && sel.b.army === target) setSel(null);
+        S.bases = S.bases.filter(b => b.army !== target); S.reserve = S.reserve.filter(b => b.army !== target); S.dead = S.dead.filter(b => b.army !== target); if (sel && sel.b && sel.b.army === target) setSel(null);
         setArmyView(target); IMP = null; save(); deployAllQuiet(target); importDone(target, r, res); renderArmies(); renderInspector(); dirty();
         setStatus(A.name + ' set as the ' + target + ' army and deployed in the ' + SIDE_NAME[A.side].toLowerCase());
       };
@@ -175,6 +175,6 @@ function renderImport(box){
   box.appendChild(det);
 }
 function deployAllQuiet(k){ const { units } = parseRoster(S.armies[k].roster);
-  for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key) && !S.reserve.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
+  for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key) && !S.reserve.some(b => b.u === k + ':' + un.key) && !S.dead.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
 
 export { readList, renderImport, rememberSizes, moveOf };
