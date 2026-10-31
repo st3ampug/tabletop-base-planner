@@ -1,7 +1,7 @@
 import { IN, DC, $ } from './core.js';
 import { MAPS } from './maps.js';
 import { MARKER_KINDS, S, M, T, sel, setSel, pushUndo, applyState, save, saveNow, PR, savePrefs, snapshot } from './state.js';
-import { rad, extents, isHull, basePoly, blockers, edgeDist, cohIssues, segCross, pip, engagedPairs } from './geometry.js';
+import { rad, extents, isHull, basePoly, blockers, edgeDist, cohIssues, segCross, pip, engagedPairs, baseHitsBase } from './geometry.js';
 import { isSeen } from './sight.js';
 import { fit, dirty, boardImage } from './render.js';
 import { renderInspector, setMap } from './ui/panel.js';
@@ -31,16 +31,37 @@ const centre = G => [G.reduce((a, b) => a + b.x, 0)/G.length, G.reduce((a, b) =>
 const baseInfo = b => ({ id: b.id, label: b.label, u: b.u || null });
 function changed(){ save(); renderArmies(); renderInspector(); dirty(); }
 // Collisions for a whole unit, ignoring its own models. Always checks bases against bases, whatever the Rules tab says.
-function unitBlockers(G, dx, dy, turn, origin){
-  const ign = new Set(G), out = [], c = Math.cos(rad(turn || 0)), s = Math.sin(rad(turn || 0));
+// Base against base is tested both ways round (ovals and hulls are compared against the other base's outline, which isn't
+// symmetric), so anything this accepts, check() accepts too. opt.walls === false leaves out terrain (moving through walls).
+function unitBlockers(G, dx, dy, turn, origin, opt){
+  const ign = new Set(G), out = [], c = Math.cos(rad(turn || 0)), s = Math.sin(rad(turn || 0)), walls = !opt || opt.walls !== false, all = new Set(S.bases);
   for (const b of G){
     let x = b.x + dx, y = b.y + dy; const rot = (b.rot + (turn || 0) + 360) % 360;
     if (turn){ const ox = b.x - origin[0], oy = b.y - origin[1]; x = origin[0] + ox*c - oy*s + dx; y = origin[1] + ox*s + oy*c + dy; }
     const e = extents(b, rad(rot));
-    if (x < e[0] - 0.01 || y < e[1] - 0.01 || x > M.W - e[0] + 0.01 || y > M.H - e[1] + 0.01) out.push({ base: baseInfo(b), by: 'board edge' });
-    else for (const h of blockers(b, x, y, rot, ign, true)) out.push({ base: baseInfo(b), by: h });
+    if (x < e[0] - 0.01 || y < e[1] - 0.01 || x > M.W - e[0] + 0.01 || y > M.H - e[1] + 0.01){ out.push({ base: baseInfo(b), by: 'board edge' }); continue; }
+    if (walls) for (const h of blockers(b, x, y, rot, all, false)) out.push({ base: baseInfo(b), by: h });
+    const ghost = Object.assign({}, b, { x, y, rot });
+    for (const o of S.bases){ if (ign.has(o)) continue;
+      if (baseHitsBase(b, x, y, rad(rot), o) || baseHitsBase(o, o.x, o.y, rad(o.rot), ghost)){ out.push({ base: baseInfo(b), by: o.label ? 'base ' + o.label : 'another base' }); break; } }
   }
   return out;
+}
+// Tries a move without keeping it: applies it, runs fn, puts every base back. No undo step, no save.
+function trial(G, fn){ const keep = G.map(b => [b, b.x, b.y, b.rot]); try { return fn(); } finally { for (const [b, x, y, r] of keep){ b.x = x; b.y = y; b.rot = r; } } }
+// Along a straight line: the furthest fraction (0..1) the unit can go. With walls off, the path only has to avoid models and
+// the board edge, and the end spot must still be fully legal, so it steps back from the furthest clear point until it is.
+function furthest(G, tx, ty, throughWalls){
+  const path = m => unitBlockers(G, tx*m, ty*m, 0, null, { walls: !throughWalls }).length;
+  // Walk the line in 5 mm steps so a thin wall or a small base can't be jumped over, then refine the first blocked step.
+  const len = Math.hypot(tx, ty) || 1, n = Math.max(1, Math.ceil(len/5));
+  let lo = 0, hi = 1;
+  for (let k = 1; k <= n; k++){ const m = k/n; if (path(m)){ hi = m; break; } lo = m; }
+  if (lo < 1) for (let i = 0; i < 16; i++){ const m = (lo + hi)/2; if (path(m)) hi = m; else lo = m; }
+  if (!throughWalls) return lo;
+  const step = 1/len;
+  for (let m = lo; m > 0; m -= step) if (!unitBlockers(G, tx*m, ty*m).length) return m;
+  return 0;
 }
 function applyMove(G, dx, dy, turn, origin){
   const c = Math.cos(rad(turn || 0)), s = Math.sin(rad(turn || 0));
@@ -96,6 +117,9 @@ function apiToReserve(u){
 function apiArrive(u, x, y, opts){
   const o = opts || {}, snap = snapshot(), r = arrive(u, x, y, { exact: o.exact !== false, searchInches: o.searchInches || 6 });
   if (!r.ok) return { ok: false, error: r.error };
+  // arrive() finds its spot with the one-way test; re-check both ways round so check() can't call the landing an overlap.
+  const placedG = S.bases.filter(b => b.u === u), clash = unitBlockers(placedG, 0, 0);
+  if (clash.length){ S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.concat(placedG); return { ok: false, error: 'No free spot for the unit there', blockers: clash }; }
   pushUndo(snap); changed(); const G = S.bases.filter(b => b.u === u), c = centre(G);
   return { ok: true, placed: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 }, pushed_in: toIn(r.pushed), check: check() };
 }
@@ -147,23 +171,26 @@ function placeUnit(u, x, y, opts){
       for (let i = 0; i < n && !found; i++){ const t = i/n*2*Math.PI, ex = dx + r*Math.cos(t), ey = dy + r*Math.sin(t); if (!unitBlockers(G, ex, ey, turn, c).length) found = [ex, ey, r]; } }
     if (found){ dx = found[0]; dy = found[1]; pushed = found[2]; hit = []; }
   }
-  if (hit.length) return { ok: false, blockers: hit, placed: null };
-  pushUndo(); applyMove(G, dx, dy, turn, c); changed();
-  const nc = centre(G);
-  return { ok: true, placed: { x: Math.round(nc[0]*10)/10, y: Math.round(nc[1]*10)/10 }, pushed_mm: Math.round(pushed*10)/10, pushed_in: toIn(pushed), blockers: [] };
+  if (hit.length) return { ok: false, blockers: hit, placed: null, dryRun: !!o.dryRun };
+  const nc = [c[0] + dx, c[1] + dy];
+  if (!o.dryRun){ pushUndo(); applyMove(G, dx, dy, turn, c); changed(); }
+  return { ok: true, placed: { x: Math.round(nc[0]*10)/10, y: Math.round(nc[1]*10)/10 }, pushed_mm: Math.round(pushed*10)/10, pushed_in: toIn(pushed), blockers: [], dryRun: !!o.dryRun };
 }
+// Would the unit fit with its centre on (x, y)? Nothing changes. Same as placeUnit(..., { exact: true, dryRun: true }).
+function canPlace(u, x, y, opts){ const o = opts || {}; const r = placeUnit(u, x, y, { exact: true, turn: o.turn, dryRun: true }); return { ok: r.ok, blockers: r.blockers }; }
 // Moves a unit by (dx, dy) in a straight line, stopping at the first wall, model or board edge, like dragging in "stop" mode.
+// opts.throughWalls: the path ignores walls (Infantry and Beasts in 11th edition); models and the board edge still stop it, and
+// the end spot must be legal. opts.dryRun: report without moving.
 function moveUnit(u, dx, dy, opts){
   const o = opts || {}, G = needUnit(u), want = Math.hypot(dx, dy);
   let f = 1; if (o.maxInches !== undefined && want > o.maxInches*IN) f = o.maxInches*IN/want;
   const tx = dx*f, ty = dy*f, start = unitBlockers(G, 0, 0);
-  let lo = 0, hi = 1;
-  if (!unitBlockers(G, tx, ty).length || start.length) lo = 1;
-  else for (let i = 0; i < 18; i++){ const m = (lo + hi)/2; if (unitBlockers(G, tx*m, ty*m).length) hi = m; else lo = m; }
-  const stoppedBy = lo < 1 ? unitBlockers(G, tx*Math.min(1, hi + 1e-3), ty*Math.min(1, hi + 1e-3)) : [];
-  if (lo > 0){ pushUndo(); applyMove(G, tx*lo, ty*lo); changed(); }
+  const lo = start.length ? 1 : furthest(G, tx, ty, !!o.throughWalls);
+  const stoppedBy = lo < 1 ? unitBlockers(G, tx*Math.min(1, lo + 1e-3 + 1/(Math.hypot(tx, ty) || 1)), ty*Math.min(1, lo + 1e-3 + 1/(Math.hypot(tx, ty) || 1)), 0, null, { walls: !o.throughWalls }) : [];
+  if (lo > 0 && !o.dryRun){ pushUndo(); applyMove(G, tx*lo, ty*lo); changed(); }
   const moved = Math.hypot(tx*lo, ty*lo);
-  return { ok: lo === 1 && f === 1, moved_in: toIn(moved), moved_mm: Math.round(moved*10)/10, requested_in: toIn(want), limitedByMax: f < 1, stoppedBy, startedIllegal: start };
+  return { ok: lo === 1 && f === 1, moved_in: toIn(moved), moved_mm: Math.round(moved*10)/10, requested_in: toIn(want), limitedByMax: f < 1, stoppedBy, startedIllegal: start,
+    throughWalls: !!o.throughWalls, dryRun: !!o.dryRun };
 }
 function closestPair(A, B){
   let best = null;
@@ -171,19 +198,22 @@ function closestPair(A, B){
   return best;
 }
 // Moves a unit straight at the closest model of the target until base contact (within 0.5 mm), or as far as it can go.
+// opts.maxInches caps the move (a charge roll). opts.within_in counts the move as done when it ends that close (e.g. 1 for a
+// charge, which must end within 1"). opts.throughWalls and opts.dryRun work as for moveUnit.
 function toContact(u, target, opts){
   const o = opts || {}, G = needUnit(u), Tg = needUnit(target), p = closestPair(G, Tg);
   let vx = p.b.x - p.a.x, vy = p.b.y - p.a.y; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;
   let dist = p.d + 1; if (o.maxInches !== undefined) dist = Math.min(dist, o.maxInches*IN);
-  let lo = 0, hi = dist;
-  if (!unitBlockers(G, vx*dist, vy*dist).length) lo = dist;
-  else for (let i = 0; i < 22; i++){ const m = (lo + hi)/2; if (unitBlockers(G, vx*m, vy*m).length) hi = m; else lo = m; }
-  const blocking = lo < dist ? unitBlockers(G, vx*(lo + 0.3), vy*(lo + 0.3)) : [];
-  if (lo > 0){ pushUndo(); applyMove(G, vx*lo, vy*lo); changed(); }
-  const after = closestPair(G, Tg), targetIds = new Set(Tg.map(b => b.id));
+  const lo = dist > 0 ? furthest(G, vx*dist, vy*dist, !!o.throughWalls)*dist : 0;
+  const blocking = lo < dist ? unitBlockers(G, vx*Math.min(dist, lo + 1), vy*Math.min(dist, lo + 1), 0, null, { walls: !o.throughWalls }) : [];
+  const measureAfter = () => closestPair(G, Tg);
+  let after;
+  if (o.dryRun) after = trial(G, () => { applyMove(G, vx*lo, vy*lo); const a = measureAfter(); return { a: a.a, b: a.b, d: a.d }; });
+  else { if (lo > 0){ pushUndo(); applyMove(G, vx*lo, vy*lo); changed(); } after = measureAfter(); }
+  const reach = Math.max(0.5, (o.within_in || 0)*IN), done = after.d <= reach;
   const others = blocking.filter(h => !Tg.some(b => h.by === (b.label ? 'base ' + b.label : 'another base')));
-  return { ok: after.d <= 0.5, gap_in: toIn(after.d), gap_mm: Math.round(after.d*10)/10, moved_in: toIn(lo), from: baseInfo(after.a), to: baseInfo(after.b),
-    blockers: after.d <= 0.5 ? [] : others, targetIds: [...targetIds] };
+  return { ok: done, gap_in: toIn(after.d), gap_mm: Math.round(after.d*10)/10, moved_in: toIn(lo), from: baseInfo(after.a), to: baseInfo(after.b),
+    blockers: done ? [] : others, targetIds: Tg.map(b => b.id), throughWalls: !!o.throughWalls, dryRun: !!o.dryRun };
 }
 // Base edge to base edge. a and b are base ids, unit keys or "friendly"/"hostile"; for groups, the closest pair.
 function measure(a, b){
@@ -222,7 +252,7 @@ function undoLast(){ const b = $('btn-undo'); if (b.disabled) return { ok: false
 
 const planner = Object.freeze({ version: API_VERSION, getBoard: wrap(getBoard), loadBoard: wrap(loadBoard), layouts: wrap(layouts), findLayout: wrap(findLayout),
   setLayout: wrap(setLayout), units: wrap(units), importList: wrap(importList), placeUnit: wrap(placeUnit), moveUnit: wrap(moveUnit), toContact: wrap(toContact),
-  measure: wrap(measure), seen: wrap(seen), check: wrap(check), image: wrap(image), undo: wrap(undoLast),
+  measure: wrap(measure), seen: wrap(seen), canPlace: wrap(canPlace), check: wrap(check), image: wrap(image), undo: wrap(undoLast),
   toReserve: wrap(apiToReserve), arrive: wrap(apiArrive), markers: wrap(apiMarkers), addMarker: wrap(apiAddMarker), moveMarker: wrap(apiMoveMarker), removeMarker: wrap(apiRemoveMarker) });
 window.planner = planner;
 
