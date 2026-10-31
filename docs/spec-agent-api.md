@@ -1,6 +1,6 @@
 # Spec: a stable interface for agents, and the gaps an agent run exposed
 
-**Status:** proposed, for the owner to prioritise. **Read first:** `CLAUDE.md`.
+**Status:** A and B built on 31 October 2026 (`src/api.js`, `docs/api.md`, `tools/planner/run.mjs`, `tests/test-api.js`), with the engagement-range setting from C. The rest of C and D are next. **Read first:** `CLAUDE.md`.
 
 ## Why
 

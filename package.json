@@ -1,0 +1,13 @@
+{
+  "name": "tabletop-base-planner",
+  "private": true,
+  "description": "Plan Warhammer 40,000 deployments with true-size bases on the 11th-edition terrain layouts.",
+  "scripts": {
+    "build": "python3 tools/build.py . && python3 tools/build.py build",
+    "test": "python3 tools/build.py build && node tests/test-import.js build && node tests/test-ui.js build && node tests/test-api.js build",
+    "plan": "node tools/planner/run.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

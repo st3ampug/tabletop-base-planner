@@ -58,6 +58,8 @@ Everything is in millimetres. The origin is the top-left corner and y increases 
 | `data/units-40kdc.json` | Unit names, model counts and base sizes for list import |
 | `tools/build.py` | Builds the single-file `index.html` from `src` and `data` |
 | `tools/dc_export.py`, `tools/units_export.py` | Regenerate the data files from 40kdc-data |
+| `src/api.js` | `window.planner`, the interface for scripts and agents (`docs/api.md`) |
+| `tools/planner/` | `run.mjs`, the headless runner, and example scripts |
 | `tests/` | Browser tests (Playwright) and example army lists |
 | `examples/` | A saved board |
 
@@ -81,7 +83,22 @@ To run the tests:
 python3 tools/build.py build
 node tests/test-import.js build
 node tests/test-ui.js build
+node tests/test-api.js build
 ```
+
+## For scripts and AI agents
+
+The page has a documented interface, `window.planner`: load and read boards, set the layout, import lists, place and move units with collision reports, move into base contact, measure, check sight, check legality, and draw the board as an image. See `docs/api.md`.
+
+To run it headless and offline:
+
+```
+npm install
+npx playwright install chromium
+node tools/planner/run.mjs tools/planner/examples/thursday.mjs --out planner-out
+```
+
+`docs/agent-briefing.md` is a prompt to give an AI assistant that works with the planner.
 
 ## Credits
 

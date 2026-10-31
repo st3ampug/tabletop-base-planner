@@ -40,3 +40,5 @@ $('io-load').addEventListener('click', () => { const t = $('io').value.trim(); i
 $('io-file').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('io').value = String(r.result); loadText(String(r.result)); }; r.readAsText(f); e.target.value = ''; });
 if (location.protocol === 'file:' || /github\.io$/.test(location.hostname) || location.hostname === 'localhost'){ $('io-download').hidden = false; $('io-download').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([exportText()], { type:'application/json' })); a.download = ((BX.boards[BX.current] || {}).name || 'board').replace(/[^\w-]+/g, '-') + '.json'; document.body.appendChild(a); a.click(); a.remove(); }); }
+
+export { exportText, loadText, tableData };
