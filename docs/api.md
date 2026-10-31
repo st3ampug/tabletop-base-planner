@@ -9,7 +9,9 @@
 - **Units:** all positions are in **millimetres**, origin top-left, y down. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red (attacker) zone at the top. Reports give distances in both `_mm` and `_in` (inches to one decimal).
 - **References:** a function that takes a *ref* accepts a unit key (`"friendly:LUC"`), a base id (`42`), an army (`"friendly"` / `"hostile"`), or, for `measure()`, a marker (`"marker:7"`). Use `units()` to list the keys.
 - **Distances:** always base edge to base edge.
-- **Collision:** when the interface moves or places units, it checks against blocking terrain, the board edge and **all** other models, whatever the Rules tab says. A unit never collides with its own models.
+- **Collision:** when the interface moves or places units, it checks against blocking terrain, the board edge and **all** other models, whatever the Rules tab says. A unit never collides with its own models. Base against base is tested both ways round, so any position the interface accepts, `check()` accepts too.
+- **Moves follow the path:** `moveUnit` and `toContact` walk the straight line in 5 mm steps, so a unit can't jump over a thin wall or a small base.
+- **Trying without changing:** `placeUnit`, `moveUnit` and `toContact` take `dryRun: true`. They return the same report and leave the board, the undo list and the save untouched. `canPlace` is the short form for "would this unit fit here?"
 
 ## Running it
 
@@ -64,10 +66,18 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 
 - With `exact: true` it refuses rather than sliding: `{ ok: false, blockers: [{ base, by }] }`, with the unit unchanged.
 - With `exact: false` it takes the nearest free spot within `searchInches` and reports how far it was pushed: `{ ok: true, placed, pushed_mm, pushed_in }`.
+- With `dryRun: true` it reports the same without moving anything.
 
-**`moveUnit(ref, dx, dy, { maxInches })`** moves the unit in a straight line by `(dx, dy)` mm, stopping at the first wall, model or board edge. It doesn't slide. `maxInches` caps the length of the move. It returns `{ ok, moved_in, moved_mm, requested_in, limitedByMax, stoppedBy, startedIllegal }`; `ok` is true only when the whole requested move happened.
+**`canPlace(ref, x, y, { turn = 0 })`** tells whether the unit would fit with its centre on `(x, y)`, without changing anything. It returns `{ ok, blockers }`. It's the same as `placeUnit(ref, x, y, { exact: true, turn, dryRun: true })`.
 
-**`toContact(ref, targetRef, { maxInches })`** moves the unit straight at the closest model of the target until base contact (within 0.5 mm), or as far as it can. It returns `{ ok, gap_in, gap_mm, moved_in, from, to, blockers }`. Use `maxInches` for a charge roll; when it falls short, `gap_in` is what's left.
+**`moveUnit(ref, dx, dy, { maxInches, throughWalls, dryRun })`** moves the unit in a straight line by `(dx, dy)` mm, stopping at the first wall, model or board edge. It doesn't slide. `maxInches` caps the length of the move. It returns `{ ok, moved_in, moved_mm, requested_in, limitedByMax, stoppedBy, startedIllegal, throughWalls, dryRun }`; `ok` is true only when the whole requested move happened.
+
+- `throughWalls: true` lets the path cross walls; models and the board edge still stop it, and the unit must end on a legal spot (it steps back along the line until it does). Use it for units whose rules let them move through terrain; the page doesn't know unit keywords, so the caller decides. In 11th edition, Infantry and Beasts move, Advance and charge through walls; Monsters, Vehicles and Mounted units need a rule that says so (such as Mobile).
+
+**`toContact(ref, targetRef, { maxInches, within_in, throughWalls, dryRun })`** moves the unit straight at the closest model of the target until base contact (within 0.5 mm), or as far as it can. It returns `{ ok, gap_in, gap_mm, moved_in, from, to, blockers, throughWalls, dryRun }`. Use `maxInches` for a charge roll; when it falls short, `gap_in` is what's left.
+
+- `within_in` counts the move as done when it ends that close to the target, e.g. `within_in: 1` for a charge that must end within 1".
+- `throughWalls` and `dryRun` work as for `moveUnit`. A charge that fails moves nothing in the rules; use `dryRun: true` first and only move when `ok` is true.
 
 ### Markers
 
