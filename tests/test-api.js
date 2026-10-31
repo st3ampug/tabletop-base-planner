@@ -83,6 +83,58 @@ const fixture = f => fs.readFileSync(path.join(__dirname, 'fixtures', f), 'utf8'
   const wallTest = await call('measure', 'friendly:DPS', 'hostile');
   ok(typeof wallTest.crossesWalls === 'boolean', 'measure() reports whether the line crosses a wall');
 
+  // contact between an oval and a round base: check() must agree with toContact (base against base is tested both ways round)
+  const oval = (await call('units', 'friendly')).find(u => u.where === 'table' && u.models === 1 && u.bases[0].shape === 'oval');
+  const spot = await pg.evaluate(u => { const p = window.planner;   // open ground with room for both, found with canPlace
+    for (let y = 300; y < 1300; y += 40) for (let x = 150; x < 1000; x += 40)
+      if (p.canPlace('hostile:RED', x, y).ok && p.canPlace(u, x, y + 160).ok){ p.placeUnit('hostile:RED', x, y); p.placeUnit(u, x, y + 160);
+        if (p.toContact(u, 'hostile:RED', { dryRun: true }).ok) return { x, y }; }
+    return null; }, oval.u);
+  ok(!!spot, 'found open ground for the contact tests');
+  const oc = await call('toContact', oval.u, 'hostile:RED');
+  const ochk = await call('check');
+  ok(oc.ok && !ochk.illegal.some(b => b.u === oval.u || b.u === 'hostile:RED'), 'an oval base in contact with a round one is legal for check() too (' + oval.u + ', gap ' + oc.gap_mm + ' mm)');
+  await call('undo');
+
+  // within_in: a charge that ends within 1" counts
+  const gap0 = (await call('measure', oval.u, 'hostile:RED')).inches;
+  const nearC = await call('toContact', oval.u, 'hostile:RED', { maxInches: gap0 - 0.5, within_in: 1 });
+  ok(nearC.ok && nearC.gap_in > 0.3 && nearC.gap_in <= 1, 'toContact with within_in: 1 succeeds when the move ends within 1" (gap ' + nearC.gap_in + '")');
+  await call('undo');
+
+  // dryRun: same report, nothing moves, no undo step
+  const c0 = (await call('units')).find(u => u.u === oval.u).centre;
+  const dry = await call('moveUnit', oval.u, 0, -3*IN, { dryRun: true });
+  const c1 = (await call('units')).find(u => u.u === oval.u).centre;
+  ok(dry.dryRun && dry.moved_in > 0 && c0.x === c1.x && c0.y === c1.y, 'moveUnit with dryRun reports the move and leaves the unit where it was (' + dry.moved_in + '")');
+  const dryC = await call('toContact', oval.u, 'hostile:RED', { dryRun: true });
+  const c2 = (await call('units')).find(u => u.u === oval.u).centre;
+  ok(dryC.dryRun && dryC.ok && c2.x === c0.x && c2.y === c0.y, 'toContact with dryRun reports contact without moving');
+  const dryP = await call('placeUnit', oval.u, 300, 900, { exact: false, dryRun: true });
+  ok(dryP.dryRun && dryP.ok && (await call('units')).find(u => u.u === oval.u).centre.y === c0.y, 'placeUnit with dryRun reports the spot without moving');
+
+  // canPlace
+  const wallPt = await pg.evaluate(() => { const t = window.__planner.T.find(t => t.kind === 'scenery' && t.collision === 'block' && (t.bb[2]-t.bb[0]) > 100); return [(t.bb[0]+t.bb[2])/2, (t.bb[1]+t.bb[3])/2]; });
+  const cpBad = await call('canPlace', oval.u, wallPt[0], wallPt[1]);
+  const cpOk = await call('canPlace', oval.u, c0.x, c0.y);
+  ok(!cpBad.ok && cpBad.blockers.length && cpOk.ok, 'canPlace refuses a wall and accepts the unit\'s own spot');
+
+  // throughWalls: a thin wall stops a normal move; the same move through it ends legal on the far side
+  const solo = (await call('units', 'friendly')).find(u => u.where === 'table' && u.models === 1 && u.bases[0].shape === 'round');
+  const plan = await pg.evaluate(u => { const p = window.planner, Tr = window.__planner.T, IN = 25.4;
+    for (const t of Tr.filter(t => t.kind === 'scenery' && t.collision === 'block')){ const w = t.bb[2]-t.bb[0], h = t.bb[3]-t.bb[1];
+      if (!(w > 100 && h < 30)) continue; const x = (t.bb[0]+t.bb[2])/2, y1 = t.bb[1] - 1.5*IN, y2 = t.bb[3] + 1.5*IN;
+      if (p.canPlace(u, x, y1).ok && p.canPlace(u, x, y2).ok) return { x, y1, y2 }; }
+    return null; }, solo.u);
+  ok(!!plan, 'found a thin wall with room on both sides');
+  if (plan){
+    await call('placeUnit', solo.u, plan.x, plan.y1);
+    const blocked = await call('moveUnit', solo.u, 0, plan.y2 - plan.y1, { dryRun: true });
+    const through = await call('moveUnit', solo.u, 0, plan.y2 - plan.y1, { throughWalls: true });
+    ok(!blocked.ok && blocked.stoppedBy.length, 'a normal move stops at the wall (' + blocked.moved_in + '")');
+    ok(through.ok && through.throughWalls && !(await call('check')).illegal.some(b => b.u === solo.u), 'with throughWalls the unit crosses the wall and ends legal (' + through.moved_in + '")');
+  }
+
   // sight
   const sAny = await call('seen', 'friendly:DPS', { by: 'hostile' });
   ok(sAny.ok && typeof sAny.seen === 'boolean' && sAny.fraction >= 0 && sAny.fraction <= 1, 'seen() answers for a unit (' + JSON.stringify(sAny) + ')');
