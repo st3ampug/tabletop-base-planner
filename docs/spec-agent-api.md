@@ -1,6 +1,6 @@
 # Spec: a stable interface for agents, and the gaps an agent run exposed
 
-**Status:** A and B built on 31 October 2026 (`src/api.js`, `docs/api.md`, `tools/planner/run.mjs`, `tests/test-api.js`), with the engagement-range setting from C. The rest of C and D are next. **Read first:** `CLAUDE.md`.
+**Status:** built on 31 October 2026: A and B (`src/api.js`, `docs/api.md`, `tools/planner/run.mjs`), D (labels, import summary, size overrides) and C except the move budget (reserves, markers, Move and Advance rings, engagement range and its marks on the board). The move budget waits for rounds and replay.
 
 ## Why
 

@@ -70,11 +70,13 @@ details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 .units{display:flex;flex-direction:column;gap:6px}
 .unit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--chip)}
 .unit.on{border-color:var(--accent)}
+.unit.res{border-style:dashed}
 .unit .tag{font-family:var(--mono);font-weight:700;font-size:11.5px;border-radius:5px;padding:3px 6px;min-width:38px;text-align:center}
 .unit .nm{font-weight:600;font-size:13px;min-width:0;overflow-wrap:anywhere}
 .unit .sz{grid-column:2 / -1;font-family:var(--mono);font-size:11px;color:var(--muted)}
 .unit .acts{grid-row:1;grid-column:3;display:flex;gap:6px}
 .unit .acts .btn{min-height:32px;padding:5px 9px}
+@media (max-width:820px){ .unit .acts{grid-row:auto;grid-column:1 / -1;justify-content:flex-end;flex-wrap:wrap} }
 .armyhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mapbtn{flex:1;min-width:0;max-width:440px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .mapbtn::after{content:" ▾";color:var(--muted)}
@@ -167,14 +169,15 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Moving:</b> drag a base to move it. The distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
       <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
       <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
-      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency.</li>
+      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency. A red line links a friendly and an enemy model within engagement range.</li>
+      <li><b>Markers:</b> tunnel markers, deep strike points, objective markers and notes sit on the board without blocking movement. Drag them like bases, and give them a label or a ring from the Selected tab.</li>
       <li><b>Sight:</b> the <b>Sight</b> button on the board tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; turning Sight on with nothing watched watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
     </ul>
     <h3>The tabs</h3>
     <ul>
-      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, watch units for the Sight overlay (the eye buttons), and edit the roster by hand.</li>
-      <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", or any distance), duplicate or remove.</li>
-      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list.</li>
+      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, put units in <b>Reserve</b> and bring them on with <b>Arrive</b>, watch units for the Sight overlay (the eye buttons), and edit the roster by hand. Change a base size in the list preview and the planner remembers it for that unit next time.</li>
+      <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data), duplicate or remove.</li>
+      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list, and add markers.</li>
       <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
       <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
       <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file. AI assistants and scripts can also drive the page directly through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
@@ -189,9 +192,10 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Pick the layout.</b> Agree Force Dispositions with your opponent and choose the matching layout.</li>
       <li><b>Load both armies.</b> Import your list as friendly and your opponent's as hostile in the Armies tab. Each army deploys into its zone straight away.</li>
       <li><b>Set the sides.</b> The attacker deploys in the red zone at the top. If you're on the wrong side, press <b>Swap sides</b>.</li>
+      <li><b>Reserves.</b> Put units that start off the table in reserve from the Armies tab. When one arrives, press <b>Arrive</b>; it appears in the middle of the view for you to drag into place.</li>
       <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
       <li><b>Keep the deployment.</b> In the Save tab, press <b>Duplicate this board</b> and rename the copy, e.g. "Deployment", so you can come back to it.</li>
-      <li><b>Play each turn.</b> Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings, and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
+      <li><b>Play each turn.</b> Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings (the Move and Advance rings show how far a unit can go), and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
       <li><b>Review.</b> Copy any board as text from the Save tab. It includes the table layout, so an analysis AI can read the positions.</li>
     </ol>
     <p class="legend">Recording a game round by round, with wounds and replay, is planned. Until then, a board per turn keeps the history.</p>
@@ -265,6 +269,14 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
           <button class="btn" id="sizes-reset" hidden>Restore default sizes</button>
         </div>
         <p class="hint" id="sizes-hint" hidden>Tap a size to remove it from the list.</p>
+        <h2 style="margin-top:6px">Markers</h2>
+        <p class="hint">Markers sit on the board without blocking movement. Add one, drag it into place, and give it a label or a ring from the Selected tab.</p>
+        <div class="row">
+          <button class="btn" data-marker="tunnel" id="mk-add-tunnel">Tunnel marker</button>
+          <button class="btn" data-marker="deep-strike" id="mk-add-ds">Deep strike point</button>
+          <button class="btn" data-marker="objective" id="mk-add-obj">Objective marker</button>
+          <button class="btn" data-marker="note" id="mk-add-note">Note</button>
+        </div>
       </section>
 
       <section class="sec" data-sec="terrain">
@@ -307,7 +319,7 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
         <p class="hint">Defaults are the 10th-edition values: within 2" of one other model, two others for units of 7 or more. Set them to your 11th-edition card. Distances are measured base edge to base edge.</p>
         <h2 style="margin-top:6px">Engagement range</h2>
         <div class="row"><label for="eng-dist">Within</label><input type="number" id="eng-dist" min="0" max="6" step="0.5" value="1" inputmode="decimal"><span>" of an enemy model</span></div>
-        <p class="hint">Used when checking a board for models in engagement range. The default is the 10th-edition 1"; set it to your 11th-edition card.</p>
+        <p class="hint">A red line on the board links a friendly and an enemy model within this distance. The default is the 10th-edition 1"; set it to your 11th-edition card.</p>
         <h2 style="margin-top:6px">Line of sight</h2>
         <p class="hint">Turn on <b>Sight</b> on the board to tint red everywhere the watched units can see. Pick the units with the eye buttons in the Armies tab.</p>
         <label class="row" style="gap:8px"><input type="checkbox" id="los-areas" checked> <span>Terrain areas block sight through them</span></label>

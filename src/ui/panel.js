@@ -7,6 +7,8 @@ import { editTerrain, select, sizeName, addBases, removeSel, dupSel, rotateSel, 
 import { findUnit, removeUnit, setUnitMove, renderArmies } from '../armies.js';
 import { renderBoards } from './boards.js';
 import { toggleWatch, isWatched, syncSightUI } from './watch.js';
+import { renderMarkerInspector } from './markers.js';
+import { moveOf } from '../import.js';
 
 /* ---------- panel ---------- */
 let editSizes = false;
@@ -23,6 +25,7 @@ function updateBaseWarn(){
 function renderInspector(){
   const box = $('inspector'); box.textContent = '';
   if (!sel){ box.appendChild(el('p', { class:'hint', text:'Tap a base or a terrain piece to edit it. Drag a base to move it and see the distance in inches.' })); return; }
+  if (sel.type === 'marker'){ renderMarkerInspector(box); return; }
   if (sel.type === 'terrain'){
     const t = sel.t, r = ruleOf(t);
     const w = (t.bb[2]-t.bb[0])/IN, h = (t.bb[3]-t.bb[1])/IN;
@@ -69,8 +72,12 @@ function renderInspector(){
     [0].concat(rings).map(v => el('button', { class:'chip', id:'ring-' + v, 'aria-pressed': String(S.ring === v), text: v ? v + '"' : 'Off', onclick: () => { S.ring = v; save(); renderInspector(); dirty(); } }))));
   const custom = el('input', { type:'number', id:'ring-custom', min:'0', max:'48', step:'0.5', value: rings.indexOf(S.ring) < 0 && S.ring ? String(S.ring) : '', placeholder:'other', inputmode:'decimal', 'aria-label':'Ring distance in inches', style:'width:76px',
     onchange: e => { const v = Math.max(0, Math.min(48, +e.target.value || 0)); S.ring = v; save(); renderInspector(); dirty(); } });
-  rr.appendChild(custom); box.appendChild(rr);
-  box.appendChild(el('p', { class:'hint', text: 'The ring is measured from the base edge' + (b.u && S.unitMove ? ', around every model in the unit.' : '.') }));
+  rr.appendChild(custom);
+  const mv = b.u ? moveOf(b.u) : null;
+  if (mv) [['ring-move', 'Move ' + mv + '"', mv], ['ring-adv', 'Advance ' + (mv + 6) + '"', mv + 6]].forEach(([id, text, v]) =>
+    rr.appendChild(el('button', { class:'chip', id, 'aria-pressed': String(S.ring === v), title: id === 'ring-move' ? 'Move of the slowest model in the unit' : 'Move plus the highest Advance roll (6")', text, onclick: () => { S.ring = v; save(); renderInspector(); dirty(); } })));
+  box.appendChild(rr);
+  box.appendChild(el('p', { class:'hint', text: 'The ring is measured from the base edge' + (b.u && S.unitMove ? ', around every model in the unit.' : '.') + (mv ? ' Move is from the 40kdc data, the slowest model in the unit; Advance adds 6".' : '') }));
   box.appendChild(el('p', { class:'warnmsg', id:'f-warn', hidden:'' }));
   box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'f-dup', text:'Duplicate', onclick: dupSel }), el('button', { class:'btn danger', id:'f-del', text:'Remove', onclick: removeSel }) ]));
   updateBaseWarn();

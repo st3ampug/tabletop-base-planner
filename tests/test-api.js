@@ -104,9 +104,50 @@ const fixture = f => fs.readFileSync(path.join(__dirname, 'fixtures', f), 'utf8'
   const err = await call('placeUnit', 'friendly:NOPE', 0, 0);
   ok(err.ok === false && /No unit/.test(err.error), 'unknown units return an error instead of throwing');
 
+  // labels: leaders by name, different units that would clash by where their names differ
+  const nids = await pg.evaluate(() => window.__planner.readList('Neurotyrant (105)\nNeurolictor (80)\nInceptors (130)\nIncursors (90)').units.map(g => g.key));
+  ok(nids[0] !== nids[1] && nids[0] === 'NTY' && nids[1] === 'NLI', 'labels: Neurotyrant and Neurolictor get NTY and NLI (' + nids.join(', ') + ')');
+  ok(nids[2] !== nids[3] && !/\d/.test(nids[2] + nids[3]), 'labels: Inceptors and Incursors get different labels without numbers (' + nids.slice(2).join(', ') + ')');
+  const lead = await pg.evaluate(() => window.__planner.readList('Attached Unit 1\nLucius the Eternal (130 points)\nFlawless Blades (190 points)\n  • 6x Flawless Blade').units[0].bases);
+  ok(/1 @ 50 LUC/.test(lead), 'labels: a leader gets the first letters of its name (' + lead + ')');
+
+  // Move from the catalogue
+  const mvs = await call('units', 'friendly');
+  ok(mvs.find(u => u.u === 'friendly:INF').move_in === 7 && mvs.find(u => u.u === 'friendly:DPS').move_in === 14, 'units() gives Move from the data (Infractors 7", winged Daemon Prince 14")');
+
+  // reserves
+  const rv = await call('toReserve', 'friendly:FB2');
+  const afterRv = await call('units', 'friendly');
+  ok(rv.ok && afterRv.find(u => u.u === 'friendly:FB2').where === 'reserve' && !(await call('check')).illegal.some(b => b.u === 'friendly:FB2'), 'toReserve takes a unit off the table');
+  ok((await call('check')).reserve.indexOf('friendly:FB2') >= 0, 'check() lists units in reserve');
+  ok((await call('seen', 'friendly:FB2', { by: 'hostile' })).ok === false, 'a unit in reserve is not on the table for sight questions');
+  const wallSpot = await pg.evaluate(() => { const t = window.__planner.T.find(t => t.kind === 'scenery' && t.collision === 'block' && (t.bb[2]-t.bb[0]) > 100); return [(t.bb[0]+t.bb[2])/2, (t.bb[1]+t.bb[3])/2]; });
+  const arrBad = await call('arrive', 'friendly:FB2', wallSpot[0], wallSpot[1]);
+  ok(!arrBad.ok && (await call('units', 'friendly')).find(u => u.u === 'friendly:FB2').where === 'reserve', 'arrive (exact) refuses a blocked spot and the unit stays in reserve');
+  const arr = await call('arrive', 'friendly:FB2', wallSpot[0], wallSpot[1], { exact: false });
+  ok(arr.ok && !arr.check.illegal.some(b => b.u === 'friendly:FB2'), 'arrive with exact:false lands on the nearest free spot (' + arr.pushed_in + '" away)');
+  const fresh = await call('importList', 'Neurotyrant (105)', { army: 'hostile', deploy: false });
+  ok(fresh.ok && (await call('units', 'hostile')).length === 0, 'importList with deploy:false sets the roster without deploying');
+  ok((await call('toReserve', 'hostile:NEU')).ok && (await call('units', 'hostile'))[0].where === 'reserve', 'toReserve puts an undeployed roster unit straight into reserve');
+  await call('importList', fixture('stephen-imperial-fists.txt'), { army: 'hostile' });
+
+  // markers
+  const mk = await call('addMarker', { kind: 'tunnel', x: 300, y: 600, label: 'Trygon', ring_in: 3 });
+  ok(mk.ok && mk.ref === 'marker:' + mk.id && (await call('markers')).length === 1, 'addMarker adds a marker with a ring');
+  ok((await call('addMarker', { kind: 'bogus', x: 1, y: 1 })).ok === false, 'addMarker refuses an unknown kind');
+  const mm = await call('measure', mk.ref, 'friendly:DPS');
+  ok(mm.inches >= 0 && mm.from.id === mk.ref, 'measure() works from a marker (' + mm.inches + '")');
+  const legalBefore = (await call('check')).illegal.length;
+  await call('moveMarker', mk.id, (await call('units', 'friendly')).find(u => u.u === 'friendly:DPS').centre.x, (await call('units', 'friendly')).find(u => u.u === 'friendly:DPS').centre.y);
+  ok((await call('check')).illegal.length === legalBefore, 'markers do not block or overlap models');
+  const brd = await call('getBoard');
+  ok(Array.isArray(brd.markers) && brd.markers.length === 1 && Array.isArray(brd.reserve), 'the board text includes markers and reserve');
+  ok((await call('removeMarker', mk.ref)).ok && (await call('markers')).length === 0, 'removeMarker removes it');
+  ok((await call('loadBoard', JSON.stringify(brd))).ok && (await call('markers')).length === 1, 'a board with markers loads back');
+
   // persistence
   await pg.waitForTimeout(400); await pg.reload(); await pg.waitForFunction(() => window.planner);
-  ok((await call('units')).length === 22 && await pg.evaluate(() => window.planner.getBoard().mapId) === 'bm-take-vs-recon-01', 'changes made through the interface survive a reload');
+  ok((await call('units')).filter(u => u.where === 'table').length === 22 && (await call('markers')).length === 1 && await pg.evaluate(() => window.planner.getBoard().mapId) === 'bm-take-vs-recon-01', 'changes made through the interface survive a reload');
   ok(!errs.length, 'no page errors ' + JSON.stringify(errs));
   console.log(fails ? fails + ' failed' : 'all passed'); await br.close();
 })();

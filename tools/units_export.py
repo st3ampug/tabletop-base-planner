@@ -1,4 +1,5 @@
-"""Export unit names, model counts and base sizes from 40kdc-data into the planner's catalogue.
+"""Export unit names, model counts, base sizes and Move from 40kdc-data into the planner's catalogue.
+Each unit is [name, faction index, base code, min models, max models, composition or null, Move in inches or null].
 Usage: python3 tools/units_export.py <path to 40kdc-data> data/units-40kdc.json"""
 import json, glob, os, sys
 repo, out = sys.argv[1], sys.argv[2]
@@ -22,8 +23,11 @@ for f in sorted(glob.glob(os.path.join(repo, 'data/core/*/units.json'))):
         mc = u.get('model_count') or {}
         e = [u['name'], fi, code(u.get('base_size_mm')), mc.get('min') or 1, mc.get('max') or mc.get('min') or 1]
         ms = comp.get(u['id']) or []
-        if len(ms) > 1 or (ms and ms[0]['name'] != u['name']):
-            e.append([[m['name'], m.get('min', 0), m.get('max', 0), code(m.get('base_size_mm'))] for m in ms])
+        e.append([[m['name'], m.get('min', 0), m.get('max', 0), code(m.get('base_size_mm'))] for m in ms]
+                 if len(ms) > 1 or (ms and ms[0]['name'] != u['name']) else None)
+        # Move in inches: the slowest model's, since a unit's bases don't record which model they are.
+        mv = [p['M'] for p in u.get('profiles', []) if isinstance(p.get('M'), (int, float))]
+        e.append(min(mv) if mv else None)
         units.append(e)
 s = json.dumps({'src': 'wn-mitch/40kdc-data', 'factions': facs, 'units': units}, separators=(',', ':'), ensure_ascii=False)
 open(out, 'w', encoding='utf-8').write(s)

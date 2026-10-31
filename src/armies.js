@@ -1,5 +1,5 @@
 import { IN, $ } from './core.js';
-import { DEFAULT_ARMIES, S, M, sel, view, pushUndo, save } from './state.js';
+import { DEFAULT_ARMIES, S, M, sel, setSel, view, pushUndo, save } from './state.js';
 import { pip, segD2, rad, extents, isHull, basePoly, blockers, findSpot } from './geometry.js';
 import { cssW, cssH, s2w, dirty, lum, setStatus } from './render.js';
 import { select } from './ui/actions.js';
@@ -74,13 +74,42 @@ function deployUnit(armyKey, un, quiet){
 const footprint = un => un.groups.reduce((a, gp) => a + gp.n*gp.w*gp.h, 0);
 function deployAll(armyKey){
   const army = S.armies[armyKey], { units } = parseRoster(army.roster);
-  const todo = units.filter(un => !S.bases.some(b => b.u === armyKey + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a));
+  const todo = units.filter(un => !whereIs(armyKey + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a));
   if (!todo.length){ setStatus('Every unit of ' + army.name + ' is already on the table'); return; }
   pushUndo(); let miss = 0; for (const un of todo) if (!deployUnit(armyKey, un, true)) miss++;
   save(); renderArmies(); dirty();
   setStatus(miss ? miss + (miss === 1 ? ' unit' : ' units') + ' did not fit in the zone and were placed near the middle' : todo.length + ' units deployed in the ' + SIDE_NAME[army.side].toLowerCase(), !!miss);
 }
-function removeUnit(u){ pushUndo(); S.bases = S.bases.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) select(null); save(); renderArmies(); renderInspector(); dirty(); }
+function removeUnit(u){ pushUndo(); S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) select(null); save(); renderArmies(); renderInspector(); dirty(); }
+const whereIs = u => S.bases.some(b => b.u === u) ? 'table' : S.reserve.some(b => b.u === u) ? 'reserve' : null;
+// Reserves: the unit's bases leave the table (or are made in its formation) and wait off the board. Nothing on the board sees them.
+function toReserve(armyKey, un, quiet){
+  const u = armyKey + ':' + un.key;
+  if (S.bases.some(b => b.u === u)){ S.reserve = S.reserve.concat(S.bases.filter(b => b.u === u)); S.bases = S.bases.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) setSel(null); }
+  else if (!S.reserve.some(b => b.u === u)){ const army = S.armies[armyKey];
+    for (const f of formation(un, army)) S.reserve.push({ id: S.nextId++, w: f.w, h: f.h, shape: f.shape, x: f.ox, y: f.oy, rot: 0, colour: army.colour, label: f.label, army: armyKey, u }); }
+  if (!quiet){ save(); renderArmies(); renderInspector(); dirty(); setStatus(un.name + ' is in reserve'); }
+}
+// Free spot for a whole unit near (cx, cy), keeping its formation: rings of 1/4" steps out to 'lim' mm. Returns the offset, or null.
+function groupSpot(G, cx, cy, lim){
+  const c = [G.reduce((a, b) => a + b.x, 0)/G.length, G.reduce((a, b) => a + b.y, 0)/G.length], ign = new Set(G);
+  const free = (dx, dy) => G.every(b => { const x = b.x + dx, y = b.y + dy, e = extents(b, rad(b.rot));
+    return x >= e[0] && y >= e[1] && x <= M.W - e[0] && y <= M.H - e[1] && !blockers(b, x, y, b.rot, ign, true).length; });
+  const bx = cx - c[0], by = cy - c[1]; if (free(bx, by)) return [bx, by];
+  for (let k = 1; k*IN/4 <= (lim || 12*IN); k++){ const r = k*IN/4, n = 8 + k*4;
+    for (let i = 0; i < n; i++){ const t = i/n*2*Math.PI, dx = bx + r*Math.cos(t), dy = by + r*Math.sin(t); if (free(dx, dy)) return [dx, dy]; } }
+  return null;
+}
+// Arriving from reserve: the unit comes back in its formation at the middle of the view (or x, y), on the nearest free spot.
+function arrive(u, x, y, opts){
+  const G = S.reserve.filter(b => b.u === u); if (!G.length) return { ok: false, error: u + ' is not in reserve' };
+  let cx = x, cy = y; if (cx === undefined){ const c = s2w(cssW/2, cssH/2); cx = Math.min(Math.max(c[0], 0), M.W); cy = Math.min(Math.max(c[1], 0), M.H); }
+  S.reserve = S.reserve.filter(b => b.u !== u); S.bases = S.bases.concat(G);
+  const off = (opts && opts.exact) ? (groupSpot(G, cx, cy, 0.001) || null) : groupSpot(G, cx, cy, (opts && opts.searchInches || 12)*IN);
+  if (!off){ S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.concat(G); return { ok: false, error: 'No free spot for the unit there' }; }
+  for (const b of G){ b.x += off[0]; b.y += off[1]; }
+  return { ok: true, pushed: Math.hypot(cx - (G.reduce((a, b) => a + b.x, 0)/G.length), cy - (G.reduce((a, b) => a + b.y, 0)/G.length)) };
+}
 function clearArmy(armyKey){ if (!S.bases.some(b => b.army === armyKey)) return; pushUndo(); S.bases = S.bases.filter(b => b.army !== armyKey); select(null); save(); renderArmies(); setStatus(S.armies[armyKey].name + ' removed from the table. Undo brings it back.'); }
 function swapSides(){
   pushUndo(); for (const k of ['friendly', 'hostile']) S.armies[k].side = S.armies[k].side === 'blue' ? 'red' : 'blue';
@@ -109,22 +138,30 @@ function renderArmies(){
   const side = el('select', { id:'army-side', 'aria-label':'Deployment zone', onchange: e => { army.side = e.target.value; save(); } },
     [el('option', { value:'blue', text:'Deploys in the blue zone' }), el('option', { value:'red', text:'Deploys in the red zone' })]); side.value = army.side;
   box.appendChild(el('div', { class:'row' }, [ side, el('button', { class:'btn', id:'army-swap', text:'Swap sides', title:'Swap zones and turn both armies to the other side', onclick: swapSides }) ]));
-  const onT = un => S.bases.some(b => b.u === k + ':' + un.key), nOn = units.filter(onT).length;
-  box.appendChild(el('div', { class:'row' }, [ Object.assign(el('button', { class:'btn primary', id:'army-deploy', text: nOn === units.length && units.length ? 'All deployed' : nOn ? 'Deploy the rest' : 'Deploy all', onclick: () => deployAll(k) }), { disabled: !units.length || nOn === units.length }),
+  const onT = un => S.bases.some(b => b.u === k + ':' + un.key), nOn = units.filter(onT).length, nRes = units.filter(un => whereIs(k + ':' + un.key) === 'reserve').length, nPlaced = nOn + nRes;
+  box.appendChild(el('div', { class:'row' }, [ Object.assign(el('button', { class:'btn primary', id:'army-deploy', text: nPlaced === units.length && units.length ? 'All deployed' : nPlaced ? 'Deploy the rest' : 'Deploy all', onclick: () => deployAll(k) }), { disabled: !units.length || nPlaced === units.length }),
     el('button', { class:'btn danger', id:'army-clear', text:'Clear from table', onclick: () => clearArmy(k) }),
-    el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' }) ]));
+    el('span', { class:'hint k', text: nOn + ' of ' + units.length + ' units on the table' + (nRes ? ' · ' + nRes + ' in reserve' : '') }) ]));
   const nW = units.filter(un => isWatched(k + ':' + un.key)).length;
   if (nOn) box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'army-watch', text:'Watch all', title:'Show where this whole army can see', onclick: () => watchArmy(k, true) }),
     el('button', { class:'btn', id:'army-unwatch', text:'Unwatch all', onclick: () => watchArmy(k, false) }), el('span', { class:'hint k', text: nW + ' watched for sight' }) ]));
   const list = el('div', { class:'units' });
   units.forEach(un => {
-    const on = onT(un), u = k + ':' + un.key, fg = lum(army.colour) > 0.55 ? '#111' : '#fff';
-    list.appendChild(el('div', { class:'unit' + (on ? ' on' : '') }, [
+    const u = k + ':' + un.key, where = whereIs(u), on = where === 'table', fg = lum(army.colour) > 0.55 ? '#111' : '#fff';
+    const acts = on ? [ el('button', { class:'btn eye', 'aria-pressed': String(isWatched(u)), text:'👁', title:'Show where this unit can see', 'aria-label': (isWatched(u) ? 'Stop watching ' : 'Watch ') + un.name, onclick: () => toggleWatch(u) }),
+        el('button', { class:'btn', text:'Find', 'aria-label':'Find ' + un.name, onclick: () => focusUnit(u) }),
+        el('button', { class:'btn', text:'Reserve', title:'Take the unit off the table into reserve', 'aria-label':'Put ' + un.name + ' in reserve', onclick: () => { pushUndo(); toReserve(k, un); } }),
+        el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
+      : where === 'reserve' ? [ el('button', { class:'btn primary', text:'Arrive', title:'Bring the unit onto the table in the middle of the view', 'aria-label':'Bring ' + un.name + ' onto the table', onclick: () => {
+          pushUndo(); const r = arrive(u); if (!r.ok){ setStatus(r.error, true); return; } save(); renderArmies(); focusUnit(u); setStatus(un.name + ' arrived. Drag it into place.'); } }),
+        el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
+      : [ el('button', { class:'btn', text:'Deploy', 'aria-label':'Deploy ' + un.name, onclick: () => { pushUndo(); deployUnit(k, un); save(); renderArmies(); focusUnit(u); } }),
+        el('button', { class:'btn', text:'Reserve', 'aria-label':'Put ' + un.name + ' in reserve', onclick: () => { pushUndo(); toReserve(k, un); } }) ];
+    list.appendChild(el('div', { class:'unit' + (on ? ' on' : where === 'reserve' ? ' res' : '') }, [
       el('span', { class:'tag', style:'background:' + army.colour + ';color:' + fg, text: un.key }),
       el('span', { class:'nm', text: un.name }),
-      el('div', { class:'acts' }, on ? [ el('button', { class:'btn eye', 'aria-pressed': String(isWatched(u)), text:'👁', title:'Show where this unit can see', 'aria-label': (isWatched(u) ? 'Stop watching ' : 'Watch ') + un.name, onclick: () => toggleWatch(u) }), el('button', { class:'btn', text:'Find', 'aria-label':'Find ' + un.name, onclick: () => focusUnit(u) }), el('button', { class:'btn danger', text:'Remove', 'aria-label':'Remove ' + un.name, onclick: () => removeUnit(u) }) ]
-        : [ el('button', { class:'btn', text:'Deploy', 'aria-label':'Deploy ' + un.name, onclick: () => { pushUndo(); deployUnit(k, un); save(); renderArmies(); focusUnit(u); } }) ]),
-      el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : '') }) ]));
+      el('div', { class:'acts' }, acts),
+      el('span', { class:'sz', text: unitSummary(un) + (on ? ' · on the table' : where === 'reserve' ? ' · in reserve' : '') }) ]));
   });
   if (!units.length) list.appendChild(el('p', { class:'hint', text:'No units yet. Open Edit roster below and add a line per unit.' }));
   box.appendChild(list);
@@ -139,4 +176,4 @@ function renderArmies(){
 $('army-friendly').addEventListener('click', () => { armyView = 'friendly'; renderArmies(); });
 $('army-hostile').addEventListener('click', () => { armyView = 'hostile'; renderArmies(); });
 
-export { armyView, setArmyView, SIDE_NAME, parseRoster, findUnit, deployUnit, footprint, deployAll, removeUnit, setUnitMove, renderArmies };
+export { armyView, setArmyView, SIDE_NAME, parseRoster, findUnit, deployUnit, footprint, deployAll, removeUnit, setUnitMove, renderArmies, whereIs, toReserve, arrive, groupSpot, focusUnit };

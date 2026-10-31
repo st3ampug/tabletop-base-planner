@@ -1,6 +1,7 @@
 import { IN, $ } from './core.js';
 import { S, M, T, sel, view, ruler } from './state.js';
-import { rad, isHull, ruleOf, blockers, cohIssues, ringPath } from './geometry.js';
+import { rad, isHull, ruleOf, blockers, cohIssues, ringPath, engagedPairs } from './geometry.js';
+import { drawMarkers } from './ui/markers.js';
 import { drag } from './ui/pointer.js';
 import { updateBaseWarn } from './ui/panel.js';
 import { drawSight, sightStatus } from './sight.js';
@@ -130,8 +131,11 @@ function draw(){
     if (selUnit && b.u === selUnit && !(sel && sel.b === b)){ ellipsePath(b, 2*px); ctx.lineWidth = 1.8*px; ctx.strokeStyle = '#ffd23f'; ctx.stroke(); }
     if (sel && sel.type === 'base' && sel.b === b){ ellipsePath(b, 3*px); ctx.lineWidth = 2.5*px; ctx.strokeStyle = '#ffd23f'; ctx.stroke(); ellipsePath(b, 4.6*px); ctx.lineWidth = px; ctx.strokeStyle = '#000'; ctx.stroke(); }
   }
+  // engaged pairs: a short red link between the closest friendly and hostile models in engagement range
+  for (const p of engagedPairs()){ ctx.beginPath(); ctx.moveTo(p.a.x, p.a.y); ctx.lineTo(p.b.x, p.b.y); ctx.lineWidth = 3*px; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke(); ctx.lineWidth = 1.6*px; ctx.strokeStyle = '#ff5a3c'; ctx.stroke(); }
+  drawMarkers(ctx, px, s);
   // overlays
-  if (drag){
+  if (drag && drag.b){
     const b = drag.b, d = Math.hypot(b.x - drag.sx, b.y - drag.sy);
     ellipsePath(b, 0, drag.sx, drag.sy); ctx.setLineDash([4*px, 4*px]); ctx.lineWidth = 1.5*px; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(drag.sx, drag.sy); ctx.lineTo(b.x, b.y); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 2*px; ctx.stroke(); ctx.setLineDash([]);
@@ -145,6 +149,7 @@ function draw(){
     tag((d/IN).toFixed(1) + '"  ·  ' + Math.round(d) + ' mm', ruler.b[0], ruler.b[1]);
   }
   if (S.ring > 0 && sel && sel.type === 'base') tag(S.ring + '" ring', sel.b.x, sel.b.y - sel.b.h/2 - S.ring*IN);
+  if (sel && sel.type === 'marker' && drag && drag.m){ const d = Math.hypot(sel.m.x - drag.sx, sel.m.y - drag.sy); if (d > 0.5) tag((d/IN).toFixed(1) + '"', sel.m.x, sel.m.y - sel.m.d/2); }
   if (!liveMsg){ const parts = [];
     if (badCount) parts.push(badCount + (badCount === 1 ? ' base is' : ' bases are') + ' in an illegal position');
     if (cohUnits.length) parts.push('Out of coherency: ' + cohUnits.join(', '));

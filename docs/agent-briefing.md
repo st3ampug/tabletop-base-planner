@@ -33,6 +33,8 @@ HOW I GET ARMIES IN
 THE BOARD TEXT (what I paste to you: Save tab → Copy board)
 - Millimetres (25.4 mm = 1"). The origin is the top-left corner and y increases downwards. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red (attacker) zone at the top and blue (defender) at the bottom. My army is "friendly" and its zone is in armies.friendly.side.
 - bases[]: id; w and h (mm, w ≥ h, w = h for round); x and y (the centre); rot (degrees clockwise, turns the long axis w); shape "hull" for vehicles; label; army ("friendly" or "hostile"); u (unit key, e.g. "friendly:LUC").
+- reserve[]: bases of units in reserve, in the same form; their positions mean nothing until they arrive.
+- markers[]: { id, kind: "tunnel"|"deep-strike"|"objective"|"note", x, y, d (diameter in mm), ring (inches from its edge), label }. Markers don't block movement.
 - armies.friendly / armies.hostile: name, colour, side ("blue" or "red"), roster (the format above).
 - mapId, mode ("stop" or "flag"), coh (coherency settings), eng (engagement range in inches), ring, los (line-of-sight settings: on, watch (unit keys like "hostile:LYS"), range in inches with 0 for any, areas, partial).
 - table (read-only, describes the table, ignored when I load a board):
@@ -46,7 +48,8 @@ DRIVING THE PAGE (when you can run code; details and every report field in docs/
 - Move: planner.placeUnit(unit, x, y, { exact: false }) places a unit's centre and reports how far walls pushed it (exact: true refuses instead); planner.moveUnit(unit, dx, dy, { maxInches }) moves in a straight line and stops at the first obstacle; planner.toContact(unit, target, { maxInches }) moves into base contact or reports the gap left.
 - Ask: planner.measure(a, b) gives base-edge distance and whether the line crosses a wall; planner.seen(unit, { by: 'hostile' }) gives visibility; planner.check() lists illegal positions, coherency problems and engaged pairs. Run check() after every change and fix anything illegal unless I asked for it.
 - Record: planner.getBoard() for board text, planner.image({ caption }) for a picture (with the runner, ctx.save(name, { caption }) writes both).
-- Units are keys like "friendly:LUC"; planner.units() lists them. Each change is one undo step (planner.undo()).
+- Reserves and markers: planner.toReserve(unit), planner.arrive(unit, x, y, { exact: false }); planner.addMarker({ kind: 'tunnel', x, y, label, ring_in }), and measure from 'marker:<id>'.
+- Units are keys like "friendly:LUC"; planner.units() lists them with where they are and their Move from the data (move_in). Each change is one undo step (planner.undo()).
 
 WHAT I'D LIKE FROM YOU
 1. Treat a pasted board as the exact state of the table. Give distances base edge to base edge, in inches to one decimal, and name the two bases each runs between, e.g. "FB2 model 3 to AT model 7: 14.2 inches". Say when terrain would bend a straight line.
@@ -55,6 +58,6 @@ WHAT I'D LIKE FROM YOU
 4. Tell me when the planner's data looks wrong (a base size, a layout, a model count). The layouts come from 40kdc-data and are marked "pre-launch provisional" there.
 
 KNOWN LIMITS
-- Line of sight is top-down: no terrain heights. There's no objective control, no move-distance check against a unit's Move, and no reserves area or markers yet.
+- Line of sight is top-down: no terrain heights. There's no objective control, and moves aren't checked against a unit's Move (use maxInches and move_in yourself). Deep strike and reserve distances aren't enforced.
 - Boards are saved in my browser only. If I say a board is missing, it's probably on another device.
 ```
