@@ -56,6 +56,10 @@ function renderInspector(){
     box.appendChild(el('div', { class:'row' }, [ el('button', { class:'btn', id:'f-unitmove', 'aria-pressed': String(S.unitMove), text: S.unitMove ? 'Dragging the whole unit' : 'Dragging one model', onclick: () => setUnitMove(!S.unitMove) }),
       el('button', { class:'btn danger', id:'f-unitdel', text:'Remove unit', onclick: () => removeUnit(b.u) }),
       el('button', { class:'btn', id:'f-watch', 'aria-pressed': String(isWatched(b.u)), text: isWatched(b.u) ? 'Watching its sight' : 'Watch its sight', title:'Show where this unit can see', onclick: () => toggleWatch(b.u) }) ])); }
+  box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-maxw', text:'Wounds' }),
+    el('input', { type:'number', id:'f-maxw', min:'1', max:'99', step:'1', inputmode:'numeric', style:'width:64px', value: String(b.maxW || 1), 'aria-label':'Wounds of this model',
+      onchange: e => { pushUndo(); const v = Math.max(1, Math.min(99, Math.round(+e.target.value) || 1)); b.maxW = v > 1 ? v : undefined; if (b.wounds > v) b.wounds = v; save(); renderInspector(); dirty(); } }),
+    el('span', { class:'hint', text: 'per model, from the list (1 if it has none)' }) ]));
   box.appendChild(el('div', { class:'row' }, [ el('label', { for:'f-label', text:'Label' }),
     el('input', { type:'text', id:'f-label', maxlength:'6', value: b.label, autocomplete:'off', oninput: e => { b.label = e.target.value.slice(0, 6); save(); dirty(); } }) ]));
   box.appendChild(el('div', { class:'row', role:'group', 'aria-label':'Base colour' }, swatches(b.colour, c => { pushUndo(); b.colour = c; save(); renderInspector(); dirty(); }, 'fc-')));

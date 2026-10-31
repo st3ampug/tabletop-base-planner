@@ -17,19 +17,20 @@ A web page for planning Warhammer 40,000 (11th edition) deployments with true-si
 - **Coherency:** models out of coherency are outlined in orange. The distance, the size at which a unit needs two neighbours, and the "one group" rule are settings in the Rules tab.
 - **Collision:** each terrain piece either blocks bases or lets them enter. A blocked move can stop at the obstacle or be allowed and flagged in red.
 - **Terrain editing:** move, turn, add, remove and rename pieces. An area carries its walls with it.
+- **Games:** record a game phase by phase. Each step keeps where every model was, which were in reserve or destroyed, and the victory points, for 5 rounds of attacker and defender turns. Wounds per model come from the data.
 - **Boards:** keep several named boards, each with its own layout, armies and positions, saved in the browser. Copy a board as text to move it to another device or hand it to an analysis tool.
 
 ## Roster format
 
-Each army's roster can also be edited by hand, one unit per line: `LABEL | Unit name | count @ size [base label], …`
+Each army's roster can also be edited by hand, one unit per line: `LABEL | Unit name | count @ size [base label] [wounds], …`
 
 ```
-LUC | Lucius + Flawless Blades | 1 @ 50 LUC, 6 @ 40 FB
-MF1 | Maulerfiend | 1 @ 120x92 MF1
-RH  | Chaos Rhino | 1 @ hull 117x74 RH
+LUC | Lucius + Flawless Blades | 1 @ 50 LUC w6, 6 @ 40 FB w3
+MF1 | Maulerfiend | 1 @ 120x92 MF1 w12
+RH  | Chaos Rhino | 1 @ hull 117x74 RH w10
 ```
 
-Sizes are in mm: `40` is a round base, `120x92` an oval, `hull 117x74` a vehicle hull.
+Sizes are in mm: `40` is a round base, `120x92` an oval, `hull 117x74` a vehicle hull. `w6` is the wounds per model; without it a model has 1.
 
 ## Board text format (Save tab → Copy board)
 
@@ -37,7 +38,9 @@ Everything is in millimetres. The origin is the top-left corner and y increases 
 
 - `mapId`, `mode` (`stop` or `flag`), `baseCollide`, `unitMove`, `ring`, `coh` (coherency settings), `los` (line of sight: `on`, `watch` unit keys such as `"hostile:LYS"`, `range` in inches with 0 for any, `areas`, `partial`)
 - `armies.friendly` / `armies.hostile`: `name`, `colour`, `side` (`blue` or `red`), `roster`
-- `bases[]`: `id`, `w`, `h` (w ≥ h), `x`, `y` (centre), `rot` (degrees clockwise), `shape` (`hull` for vehicles), `label`, `army`, `u` (unit key, e.g. `friendly:LUC`)
+- `bases[]`: `id`, `w`, `h` (w ≥ h), `x`, `y` (centre), `rot` (degrees clockwise), `shape` (`hull` for vehicles), `label`, `army`, `u` (unit key, e.g. `friendly:LUC`), `maxW` (wounds per model, when more than 1)
+- `reserve[]` (bases of units in reserve), `markers[]`
+- `games[]`, `game` (the open game's id): recorded games, each with its phases, a roster of models and its saved steps. Step 0 lists every model; later steps list only the models that changed, as `[x, y, rot, wounds]` or `[x, y, rot, wounds, "reserve"|"destroyed"]`. Described in `docs/agent-briefing.md`.
 - `table` (read-only, ignored when loading): `zones[]`, `objectives[]` (`role`, `owner`, `x`, `y`) and `terrain[]` (`kind` `area` or `wall`, `collision`, `poly`)
 
 `docs/agent-briefing.md` is a prompt that explains this format to an AI assistant analysing a matchup.
@@ -47,7 +50,7 @@ Everything is in millimetres. The origin is the top-left corner and y increases 
 - **Rules:** coherency defaults are the 10th-edition values (2", two neighbours for units of 7 or more). Set them to your 11th-edition card.
 - **Layout data:** marked "pre-launch provisional" in its source. Compare a layout with the official card or mission app.
 - **Base sizes:** vehicle hulls have no size in the data, so you enter them. The data puts Impulsors on 100 mm round bases and Lucius on 50 mm.
-- **Not modelled:** line of sight, terrain height, engagement range and objective control.
+- **Not modelled:** terrain height (line of sight is top-down) and objective control. Rules such as Move limits and reserve distances are shown, not enforced.
 
 ## Project layout
 
@@ -86,6 +89,7 @@ python3 tools/build.py build
 node tests/test-import.js build
 node tests/test-ui.js build
 node tests/test-api.js build
+node tests/test-game.js build
 ```
 
 ## For scripts and AI agents

@@ -23,19 +23,20 @@ HOW I GET ARMIES IN
 - Easiest: Armies tab → "Paste an army list". It reads lists exported from the Warhammer app and plain text lists where each unit line has its points in brackets, e.g. "Impulsor – Orbital Comms (80)" or "+ 10x Assault Terminators (390)". It matches units to the 40kdc-data catalogue for model counts and base sizes. I check the result, then use it as the friendly or hostile army.
 - Vehicles with no base size in the data (e.g. Rhinos) need a hull size typed in once; the planner remembers it.
 - If you write a roster for me directly, use one unit per line:
-    LABEL | Unit name | count @ size [base label], more groups after commas
-  e.g.  LUC | Lucius + Flawless Blades | 1 @ 50 LUC, 6 @ 40 FB
-        MF1 | Maulerfiend | 1 @ 120x92 MF1
-        RH  | Chaos Rhino | 1 @ hull 117x74 RH
-  Sizes are in mm. Labels are at most 6 characters. Lines starting with # are comments.
+    LABEL | Unit name | count @ size [base label] [wounds], more groups after commas
+  e.g.  LUC | Lucius + Flawless Blades | 1 @ 50 LUC w6, 6 @ 40 FB w3
+        MF1 | Maulerfiend | 1 @ 120x92 MF1 w12
+        RH  | Chaos Rhino | 1 @ hull 117x74 RH w10
+  Sizes are in mm. Labels are at most 6 characters. w6 means 6 wounds per model; with no w, a model has 1. Lines starting with # are comments.
   I paste it into Armies → Edit roster.
 
 THE BOARD TEXT (what I paste to you: Save tab → Copy board)
 - Millimetres (25.4 mm = 1"). The origin is the top-left corner and y increases downwards. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red (attacker) zone at the top and blue (defender) at the bottom. My army is "friendly" and its zone is in armies.friendly.side.
-- bases[]: id; w and h (mm, w ≥ h, w = h for round); x and y (the centre); rot (degrees clockwise, turns the long axis w); shape "hull" for vehicles; label; army ("friendly" or "hostile"); u (unit key, e.g. "friendly:LUC").
+- bases[]: id; w and h (mm, w ≥ h, w = h for round); x and y (the centre); rot (degrees clockwise, turns the long axis w); shape "hull" for vehicles; label; army ("friendly" or "hostile"); u (unit key, e.g. "friendly:LUC"); maxW (wounds per model, left out when 1).
 - reserve[]: bases of units in reserve, in the same form; their positions mean nothing until they arrive.
 - markers[]: { id, kind: "tunnel"|"deep-strike"|"objective"|"note", x, y, d (diameter in mm), ring (inches from its edge), label }. Markers don't block movement.
 - armies.friendly / armies.hostile: name, colour, side ("blue" or "red"), roster (the format above).
+- games[] and game (the id of the open game, or null): a recorded game. See GAMES below.
 - mapId, mode ("stop" or "flag"), coh (coherency settings), eng (engagement range in inches), ring, los (line-of-sight settings: on, watch (unit keys like "hostile:LYS"), range in inches with 0 for any, areas, partial).
 - table (read-only, describes the table, ignored when I load a board):
     table.zones[]       { owner: "red"|"blue", poly: [[x,y],...] }
@@ -43,12 +44,21 @@ THE BOARD TEXT (what I paste to you: Save tab → Copy board)
     table.terrain[]     { id, name, kind: "area"|"wall", collision: "allow"|"block", poly, area (for walls, the area they belong to) }
   This includes any terrain edits I made, so you don't need a screenshot.
 
+GAMES (a board can hold recorded games; I save a step at the end of each phase)
+- game: { id, name, attacker: "friendly"|"hostile", rounds: 5, phases: ["Command", "Movement", "Shooting", "Charge", "Fight"], armies (names, colours, sides and rosters when the game started), roster, vp (the score now), steps[] }.
+- roster: { [base id]: { u, army, label, w, h, shape?, maxW? } } for every model in the game.
+- steps[]: { round, turn: "attacker"|"defender", phase, vp: { friendly, hostile } (the score at that step), note?, models }. Step 0 is deployment (round 0) and lists every model. Every later step lists only the models that changed since the step before.
+- A model is [x, y, rot, wounds left] while on the table, or [x, y, rot, wounds, "reserve"|"destroyed"]. Destroyed models keep the position where they were last seen (wounds 0); reserve positions mean nothing.
+- To know where everything was at step n, start from step 0 and apply steps 1..n in order, each entry replacing the model's earlier entry. A step's label is "Round 2 · Attacker (name) · Shooting"; each round is the attacker's turn, then the defender's.
+- The rules aren't enforced: a step only records where the models were and the score I entered.
+
 DRIVING THE PAGE (when you can run code; details and every report field in docs/api.md)
 - Set up: planner.setLayout(planner.findLayout('TAH', 'REC', 1)); planner.importList(text, { army: 'friendly', sizes: { 'Chaos Rhino': 'hull 117x74' } }) imports and deploys a list (it refuses and names any unit without a base size); planner.loadBoard(text) loads a board I gave you.
 - Move: planner.placeUnit(unit, x, y, { exact: false }) places a unit's centre and reports how far walls pushed it (exact: true refuses instead); planner.moveUnit(unit, dx, dy, { maxInches }) moves in a straight line and stops at the first obstacle; planner.toContact(unit, target, { maxInches }) moves into base contact or reports the gap left.
 - Ask: planner.measure(a, b) gives base-edge distance and whether the line crosses a wall; planner.seen(unit, { by: 'hostile' }) gives visibility; planner.check() lists illegal positions, coherency problems and engaged pairs. Run check() after every change and fix anything illegal unless I asked for it.
 - Record: planner.getBoard() for board text, planner.image({ caption }) for a picture (with the runner, ctx.save(name, { caption }) writes both).
 - Reserves and markers: planner.toReserve(unit), planner.arrive(unit, x, y, { exact: false }); planner.addMarker({ kind: 'tunnel', x, y, label, ring_in }), and measure from 'marker:<id>'.
+- Games: planner.startGame({ attacker, phases }) starts one from the current positions; planner.saveStep({ note, vp: { friendly, hostile } }) saves the phase shown by planner.game() and moves on; planner.setVP(army, n).
 - Units are keys like "friendly:LUC"; planner.units() lists them with where they are and their Move from the data (move_in). Each change is one undo step (planner.undo()).
 
 WHAT I'D LIKE FROM YOU

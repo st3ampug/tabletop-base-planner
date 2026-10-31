@@ -1,6 +1,13 @@
 # Spec: game rounds, wounds and replay
 
-**Status:** agreed with the owner on 30 October 2026, ready to build. **Owner:** Balint. **Read first:** `CLAUDE.md`.
+**Status:** agreed with the owner on 30 October 2026. Built on 31 October 2026: step 2 (wound data), step 3 (game model) and step 8 (VP counter). Next: step 4, casualties.
+
+**As built (differences from the plan below):**
+- Wounds are written into the roster as an optional token after the label, `1 @ 50 LUC w6`, and bases carry `maxW` (left out when 1). A unit with no Wounds in the data is flagged in the import preview and counts as 1. The Selected tab can correct a model's wounds.
+- A model in a step is `[x, y, rot, wounds]` on the table; the state is a fifth field only when it isn't the table (`"reserve"` or `"destroyed"`), which keeps games small. A full 51-step game where all 95 example models move every step is about 100 KB.
+- `board.games[]` plus `board.game` (the open game's id). Games are part of the board, so undo covers saving a step.
+- The game bar has the phase to play, VP − and +, and Save step; stepping, scrubbing and play come with replay. The Game tab lists the steps and can delete the last step, close the game, and open a closed game (which puts the models back where its last step had them).
+- `window.planner` gained `game()`, `startGame()`, `saveStep()` and `setVP()`. **Owner:** Balint. **Read first:** `CLAUDE.md`.
 
 ## Goal
 

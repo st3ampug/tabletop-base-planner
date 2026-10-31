@@ -54,7 +54,7 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 - If every base has a size, it replaces that army's roster and deploys it into its zone. It returns `{ ok: true, units, faction, notInZone }`; `notInZone` lists units that didn't fit and were placed outside the zone.
 - If some sizes are missing, usually vehicles with no base, it changes nothing and returns `{ ok: false, error, units }`, where each unit shows `missingSize`. Call it again with `sizes`, e.g. `{ "Chaos Rhino": "hull 117x74" }`. Sizes are written like `40`, `120x92` or `hull 117x74`, and sizes given this way are remembered like sizes entered in the page.
 
-**`units(army?)`** returns `[{ u, army, name, where, models, move_in, centre: { x, y }, bases: [{ id, label, w, h, shape, x, y, rot }] }]`. `where` is `table` or `reserve` (units in reserve have no position). `move_in` is the unit's Move from the 40kdc data, the slowest of its datasheets, or `null` if it isn't known.
+**`units(army?)`** returns `[{ u, army, name, where, models, move_in, centre: { x, y }, bases: [{ id, label, w, h, shape, x, y, rot, wounds }] }]`. `wounds` is the model's wounds from the roster (1 when it has none). `where` is `table` or `reserve` (units in reserve have no position). `move_in` is the unit's Move from the 40kdc data, the slowest of its datasheets, or `null` if it isn't known.
 
 **`toReserve(unit)`** takes a unit off the table into reserve, or puts an undeployed roster unit straight into reserve. Units in reserve aren't on the table: nothing collides with them, sees them or measures to them. It returns `{ ok }`.
 
@@ -88,6 +88,18 @@ Markers are tokens that don't block movement: `tunnel`, `deep-strike`, `objectiv
 **`addMarker({ kind, x, y, label, ring_in, size_mm })`** adds a marker and returns it with `ok`.
 
 **`moveMarker(id, x, y)`** and **`removeMarker(id)`** take the id or the ref.
+
+### Games
+
+A game records the board phase by phase: step 0 is the deployment, then one step per phase, the attacker's turn then the defender's, for 5 rounds. The format is in `docs/agent-briefing.md` (GAMES).
+
+**`game()`** returns the open game: `{ ok, id, name, attacker, phases, rounds, vp, steps: [{ step, label, vp, changed, note }], next, of }`. `next` is the label of the phase to save next, or `null` when the game is over. With no game open it returns `{ ok: false, error, games }`.
+
+**`startGame({ attacker, phases, name })`** starts a game from the current positions. `attacker` defaults to the army in the red zone and `phases` to Command, Movement, Shooting, Charge, Fight. It refuses while another game is open. It returns `{ ok, game }`.
+
+**`saveStep({ note, vp })`** saves where every model is now as the end of the phase in `game().next`, and moves on. `vp: { friendly, hostile }` sets the score first. It returns `{ ok, step, label, changed, next }`; `changed` counts the models that changed since the step before.
+
+**`setVP(army, value)`** sets an army's victory points in the open game. It returns `{ ok, vp }`.
 
 ### Questions
 

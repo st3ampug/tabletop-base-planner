@@ -21,11 +21,12 @@ function parseRoster(text){
     while (seen[label]) label = (base.slice(0, 5) + k++).slice(0, 6); seen[label] = 1;
     const groups = [];
     for (const tok of parts[2].split(',')){
-      const m = tok.trim().match(/^(\d+)\s*@\s*(hull\s+)?(\d+(?:\.\d+)?)(?:\s*[x×]\s*(\d+(?:\.\d+)?))?(?:\s+(\S{1,6}))?$/i);
-      if (!m){ errs.push('Line ' + (i+1) + ': can\'t read "' + tok.trim() + '". Write it like 6 @ 40 or 1 @ hull 117x74.'); continue; }
+      // count @ size, then an optional label, then optional wounds per model (w3). A missing wounds value means 1.
+      const m = tok.trim().match(/^(\d+)\s*@\s*(hull\s+)?(\d+(?:\.\d+)?)(?:\s*[x×]\s*(\d+(?:\.\d+)?))?(?:\s+(?!w\d+$)(\S{1,6}))?(?:\s+w(\d{1,3}))?$/i);
+      if (!m){ errs.push('Line ' + (i+1) + ': can\'t read "' + tok.trim() + '". Write it like 6 @ 40, 1 @ 60 DP w10 or 1 @ hull 117x74.'); continue; }
       const n = Math.min(+m[1], 40), a = +m[3], c = m[4] ? +m[4] : a;
       if (!(n > 0 && a >= 10 && a <= 400 && c >= 10 && c <= 400)){ errs.push('Line ' + (i+1) + ': sizes run from 10 to 400 mm.'); continue; }
-      groups.push({ n, w: Math.max(a, c), h: Math.min(a, c), hull: !!m[2], label: m[5] || label });
+      groups.push({ n, w: Math.max(a, c), h: Math.min(a, c), hull: !!m[2], label: m[5] || label, wounds: Math.max(1, Math.min(99, +m[6] || 1)) });
     }
     if (groups.length) units.push({ key: label, name: parts[1] || label, groups });
   });
@@ -33,7 +34,8 @@ function parseRoster(text){
 }
 function findUnit(u){ if (!u) return null; const i = u.indexOf(':'), army = u.slice(0, i), key = u.slice(i+1);
   return S.armies[army] ? parseRoster(S.armies[army].roster).units.find(x => x.key === key) : null; }
-function unitSummary(un){ return un.groups.map(gp => gp.n + '×' + (gp.hull ? 'hull ' + gp.w + '×' + gp.h : gp.w === gp.h ? gp.w : gp.w + '×' + gp.h)).join(' + ') + ' mm'; }
+function unitSummary(un){ return un.groups.map(gp => gp.n + '×' + (gp.hull ? 'hull ' + gp.w + '×' + gp.h : gp.w === gp.h ? gp.w : gp.w + '×' + gp.h)).join(' + ') + ' mm'
+  + (un.groups.some(gp => gp.wounds > 1) ? ' · ' + un.groups.map(gp => gp.wounds + 'W').join(' + ') : ''); }
 function zoneOf(side){ return M.zones.find(z => z.owner === side) || null; }
 function within(b, x, y, poly){
   if (!pip(x, y, poly)) return false;
@@ -42,7 +44,7 @@ function within(b, x, y, poly){
   return basePoly(b, x, y, rad(b.rot), 20).every(q => pip(q[0], q[1], poly));
 }
 function formation(un, army){
-  const bs = []; un.groups.forEach(gp => { for (let i = 0; i < gp.n; i++) bs.push({ w: gp.w, h: gp.h, shape: gp.hull ? 'hull' : undefined, label: gp.label }); });
+  const bs = []; un.groups.forEach(gp => { for (let i = 0; i < gp.n; i++) bs.push({ w: gp.w, h: gp.h, shape: gp.hull ? 'hull' : undefined, label: gp.label, maxW: gp.wounds > 1 ? gp.wounds : undefined }); });
   const n = bs.length, cols = n <= 3 ? n : Math.min(6, Math.ceil(Math.sqrt(n*1.8))), rows = Math.ceil(n/cols);
   const cw = Math.max(...bs.map(b => b.w)) + 2.5, rh = Math.max(...bs.map(b => b.h)) + 2.5;
   bs.forEach((b, i) => { b.ox = ((i % cols) - (cols-1)/2)*cw; b.oy = (Math.floor(i/cols) - (rows-1)/2)*rh; b.rot = 0; b.colour = army.colour; });
@@ -66,7 +68,7 @@ function deployUnit(armyKey, un, quiet){
   }
   let outside = false;
   if (!at){ outside = true; const c = s2w(cssW/2, cssH/2); at = [c[0], c[1]]; }
-  const made = F.map(f => ({ id: S.nextId++, w: f.w, h: f.h, shape: f.shape, x: at[0] + f.ox, y: at[1] + f.oy, rot: 0, colour: army.colour, label: f.label, army: armyKey, u }));
+  const made = F.map(f => ({ id: S.nextId++, w: f.w, h: f.h, shape: f.shape, x: at[0] + f.ox, y: at[1] + f.oy, rot: 0, colour: army.colour, label: f.label, army: armyKey, u, maxW: f.maxW }));
   for (const b of made){ if (outside){ const p = findSpot(b, b.x, b.y); b.x = p[0]; b.y = p[1]; } S.bases.push(b); }
   if (!quiet) setStatus(outside ? un.name + ' did not fit in the ' + SIDE_NAME[army.side].toLowerCase() + '. Placed near the middle of the view.' : un.name + ' deployed in the ' + SIDE_NAME[army.side].toLowerCase(), outside);
   return !outside;
@@ -87,7 +89,7 @@ function toReserve(armyKey, un, quiet){
   const u = armyKey + ':' + un.key;
   if (S.bases.some(b => b.u === u)){ S.reserve = S.reserve.concat(S.bases.filter(b => b.u === u)); S.bases = S.bases.filter(b => b.u !== u); if (sel && sel.b && sel.b.u === u) setSel(null); }
   else if (!S.reserve.some(b => b.u === u)){ const army = S.armies[armyKey];
-    for (const f of formation(un, army)) S.reserve.push({ id: S.nextId++, w: f.w, h: f.h, shape: f.shape, x: f.ox, y: f.oy, rot: 0, colour: army.colour, label: f.label, army: armyKey, u }); }
+    for (const f of formation(un, army)) S.reserve.push({ id: S.nextId++, w: f.w, h: f.h, shape: f.shape, x: f.ox, y: f.oy, rot: 0, colour: army.colour, label: f.label, army: armyKey, u, maxW: f.maxW }); }
   if (!quiet){ save(); renderArmies(); renderInspector(); dirty(); setStatus(un.name + ' is in reserve'); }
 }
 // Free spot for a whole unit near (cx, cy), keeping its formation: rings of 1/4" steps out to 'lim' mm. Returns the offset, or null.
@@ -168,7 +170,7 @@ function renderArmies(){
   const ta = el('textarea', { id:'army-roster', spellcheck:'false', 'aria-label':'Roster', style:'height:190px' }); ta.value = army.roster;
   const msg = el('p', { class:'warnmsg', id:'army-msg' }); msg.hidden = !errs.length; msg.textContent = errs.join(' ');
   const det = el('details', { id:'army-edit' }, [ el('summary', { text:'Edit roster' }),
-    el('p', { class:'hint', style:'margin:8px 0', text:'One unit per line: label | name | bases. Bases are count @ size, with an optional label per group, e.g. 1 @ 40 LYS, 10 @ 40 TH. Use 120x92 for an oval and hull 117x74 for a vehicle without a base. Units already on the table keep their bases.' }),
+    el('p', { class:'hint', style:'margin:8px 0', text:'One unit per line: label | name | bases. Bases are count @ size, with an optional label and wounds per model for each group, e.g. 1 @ 40 LYS w6, 10 @ 40 TH w3. Use 120x92 for an oval and hull 117x74 for a vehicle without a base. Units already on the table keep their bases.' }),
     ta, el('div', { class:'row', style:'margin-top:8px' }, [ el('button', { class:'btn', id:'army-apply', text:'Apply roster', onclick: () => { pushUndo(); army.roster = ta.value; save(); renderArmies(); $('army-edit').open = true; setStatus('Roster updated'); } }),
       el('button', { class:'btn', id:'army-default', text:'Restore example list', onclick: () => { pushUndo(); army.roster = DEFAULT_ARMIES[k].roster; save(); renderArmies(); } }) ]), msg ]);
   box.appendChild(det);
