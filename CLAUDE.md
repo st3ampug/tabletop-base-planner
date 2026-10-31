@@ -12,7 +12,9 @@ The owner is a software QA specialist. Prefer small, reviewable commits, tests f
 python3 tools/build.py .         # rebuilds index.html (the live page) from src/ and data/
 python3 tools/build.py build     # same, into build/ (git-ignored), for testing
 node tests/test-import.js build  # army-list import against tests/fixtures/*.txt
-node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards, help, line of sight (38 checks)
+node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards, help, line of sight
+node tests/test-api.js build     # window.planner, the agent interface
+npm test                         # builds into build/ and runs all three
 ```
 
 - **Tests:** Playwright, run against `build/index.html` via `file://`. Install Playwright locally (`npm i -D playwright`) and point it at your Chromium. The tests currently pass `executablePath: '/opt/pw-browsers/chromium'` with a fallback.
@@ -46,6 +48,7 @@ node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency
 | `ui/keyboard.js` | Shortcuts |
 | `ui/help.js` | The Help dialog (its text is in the markup in `app.src.html`; keep it in step with features) |
 | `main.js` | Start-up, migration of older saves, `window.__planner` |
+| `api.js` | `window.planner`: the documented, versioned interface for scripts and AI agents (`docs/api.md`) |
 
 Rules for the modules:
 
@@ -55,6 +58,8 @@ Rules for the modules:
 - **Names:** every top-level name must be unique across all modules, because they share one scope after the build.
 
 `window.__planner` exposes state and functions for the tests. Keep it working, or update the tests with it.
+
+`window.planner` (`src/api.js`) is a public contract for agents and scripts, documented in `docs/api.md` and tested by `tests/test-api.js`. It must change the board the way the UI does (one undo step, autosave, redraw) and return reports rather than throw. Adding functions or report fields is fine; renaming or changing arguments or fields needs `version` bumped and the doc and tests updated. When a UI feature changes behaviour the interface relies on (collision, import, sight, coherency), run `tests/test-api.js` too. `tools/planner/run.mjs` drives it headless for agents; keep `tools/planner/examples/thursday.mjs` working.
 
 ## Conventions and decisions (don't change without asking)
 
@@ -79,4 +84,5 @@ Rules for the modules:
 ## Open work
 
 - `docs/spec-rounds-and-replay.md`: game rounds, wounds, casualties and replay. This is the next feature.
-- Known limits: no terrain height (line of sight is top-down), engagement range or objective control.
+- `docs/spec-agent-api.md`: the agent interface. Parts A and B are built (`window.planner`, `tools/planner/run.mjs`, the engagement-range setting); C (reserves tray, markers, Move rings and move budget, engaged-pair marks on the board) and D (labels, import summary, size overrides) are next.
+- Known limits: no terrain height (line of sight is top-down) or objective control.

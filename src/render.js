@@ -151,6 +151,18 @@ function draw(){
     setStatus(parts.length ? parts.join(' · ') : sightStatus(), !!parts.length, true); }
   if (sel && sel.type === 'base') updateBaseWarn();
 }
+// A PNG of the whole board at a fixed scale, drawn with the normal renderer (selection, rings and sight included), with an optional caption above it.
+function boardImage(pxPerInch, caption){
+  const ppi = Math.max(4, Math.min(60, +pxPerInch || 16)), W = Math.round(M.W/IN*ppi), H = Math.round(M.H/IN*ppi), capH = caption ? Math.round(ppi*2.2) : 0;
+  const keep = { s: view.s, ox: view.ox, oy: view.oy, w: cv.width, h: cv.height, cw: cssW, ch: cssH };
+  cv.width = W; cv.height = H; cssW = W; cssH = H; view.s = ppi/IN; view.ox = 0; view.oy = 0;
+  draw();
+  const out = document.createElement('canvas'); out.width = W; out.height = H + capH; const o = out.getContext('2d');
+  o.fillStyle = '#17201d'; o.fillRect(0, 0, W, H + capH); o.drawImage(cv, 0, capH);
+  if (caption){ o.fillStyle = '#ffffff'; o.font = '600 ' + Math.round(capH*0.5) + 'px ' + getComputedStyle(document.body).fontFamily; o.textBaseline = 'middle'; o.fillText(String(caption), Math.round(ppi*0.6), capH/2, W - ppi*1.2); }
+  cv.width = keep.w; cv.height = keep.h; cssW = keep.cw; cssH = keep.ch; view.s = keep.s; view.ox = keep.ox; view.oy = keep.oy; draw();
+  return out.toDataURL('image/png');
+}
 let liveMsg = false, msgT = 0;
 const clearLiveMsg = () => { liveMsg = false; };
 function setStatus(text, warn, passive){
@@ -158,4 +170,4 @@ function setStatus(text, warn, passive){
   if (!passive){ liveMsg = true; clearTimeout(msgT); msgT = setTimeout(() => { liveMsg = false; dirty(); }, 2200); }
 }
 
-export { cv, stage, cssW, cssH, resize, fit, s2w, dirty, lum, ZONE, liveMsg, clearLiveMsg, setStatus };
+export { boardImage, cv, stage, cssW, cssH, resize, fit, s2w, dirty, lum, ZONE, liveMsg, clearLiveMsg, setStatus };

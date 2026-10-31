@@ -176,8 +176,8 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", or any distance), duplicate or remove.</li>
       <li><b>Bases:</b> add loose bases by size, for models that aren't in a list.</li>
       <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
-      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
-      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file.</li>
+      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
+      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file. AI assistants and scripts can also drive the page directly through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
     </ul>
     <h3>Keys</h3>
     <ul>
@@ -305,6 +305,9 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
         </div>
         <label class="row" style="gap:8px"><input type="checkbox" id="coh-group" checked> <span>The unit must form one group</span></label>
         <p class="hint">Defaults are the 10th-edition values: within 2" of one other model, two others for units of 7 or more. Set them to your 11th-edition card. Distances are measured base edge to base edge.</p>
+        <h2 style="margin-top:6px">Engagement range</h2>
+        <div class="row"><label for="eng-dist">Within</label><input type="number" id="eng-dist" min="0" max="6" step="0.5" value="1" inputmode="decimal"><span>" of an enemy model</span></div>
+        <p class="hint">Used when checking a board for models in engagement range. The default is the 10th-edition 1"; set it to your 11th-edition card.</p>
         <h2 style="margin-top:6px">Line of sight</h2>
         <p class="hint">Turn on <b>Sight</b> on the board to tint red everywhere the watched units can see. Pick the units with the eye buttons in the Armies tab.</p>
         <label class="row" style="gap:8px"><input type="checkbox" id="los-areas" checked> <span>Terrain areas block sight through them</span></label>

@@ -35,7 +35,7 @@ const DEFAULT_ARMIES = {
     "RV2 | Reivers | 5 @ 32 RV2" ].join('\n') }
 };
 const cloneArmies = a => JSON.parse(JSON.stringify(a));
-let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, bases:[], mode:'stop', baseCollide:true, nextId:1 };
+let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], mode:'stop', baseCollide:true, nextId:1 };
 let M = MAPS[S.mapId];
 let T = [];                // live terrain of the current layout
 // Other modules can read these live bindings but not assign them, so they go through setters.
@@ -55,7 +55,7 @@ const undo = [];
 const view = { s: 0.3, ox: 0, oy: 0 };
 const ruler = { on:false, a:null, b:null };
 
-function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, bases:S.bases, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
+function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
 function pushUndo(snap){ undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
 function applyState(o){
   const custom = {};
@@ -67,7 +67,7 @@ function applyState(o){
   for (const k of ['friendly', 'hostile']) if (o.armies && o.armies[k]) Object.assign(armies[k], o.armies[k]);
   const coh = Object.assign({ on:true, dist:2, big:7, group:true }, o.coh || {});
   const lo = o.los || {}, los = { on: lo.on === true, watch: Array.isArray(lo.watch) ? lo.watch.filter(u => typeof u === 'string') : [], range: Math.max(0, +lo.range || 0), areas: lo.areas !== false, partial: lo.partial !== false };
-  S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0, los,
+  S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0, los, eng: o.eng === undefined ? 1 : Math.max(0, +o.eng || 0),
         bases: (o.bases || []).filter(b => b && b.w > 0 && b.h > 0 && isFinite(b.x) && isFinite(b.y)).map(b => ({
           id: b.id, w:+b.w, h:+b.h, x:+b.x, y:+b.y, rot:+b.rot || 0, colour: b.colour || COLOURS[0], label: String(b.label || '').slice(0,6),
           shape: b.shape === 'hull' ? 'hull' : undefined, army: b.army || undefined, u: b.u || undefined })),

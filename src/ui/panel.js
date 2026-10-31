@@ -116,8 +116,9 @@ $('map-btn').addEventListener('click', () => { pkPair = null; renderPicker(); tr
 $('pk-close').addEventListener('click', () => $('picker').close());
 $('picker').addEventListener('click', e => { if (e.target === $('picker')) $('picker').close(); });
 function syncRulesUI(){ $('mode-stop').setAttribute('aria-pressed', String(S.mode === 'stop')); $('mode-flag').setAttribute('aria-pressed', String(S.mode === 'flag')); $('base-collide').checked = S.baseCollide; $('btn-undo').disabled = !undo.length;
-  $('coh-on').checked = S.coh.on; $('coh-dist').value = S.coh.dist; $('coh-big').value = S.coh.big; $('coh-group').checked = S.coh.group; syncSightUI(); }
+  $('coh-on').checked = S.coh.on; $('coh-dist').value = S.coh.dist; $('coh-big').value = S.coh.big; $('coh-group').checked = S.coh.group; $('eng-dist').value = S.eng; syncSightUI(); }
 $('coh-on').addEventListener('change', e => { S.coh.on = e.target.checked; save(); dirty(); });
+$('eng-dist').addEventListener('change', e => { S.eng = Math.max(0, Math.min(6, +e.target.value || 0)); e.target.value = S.eng; save(); });
 $('coh-group').addEventListener('change', e => { S.coh.group = e.target.checked; save(); dirty(); });
 $('coh-dist').addEventListener('change', e => { S.coh.dist = Math.max(0.5, Math.min(12, +e.target.value || 2)); e.target.value = S.coh.dist; save(); dirty(); });
 $('coh-big').addEventListener('change', e => { S.coh.big = Math.max(2, Math.min(40, Math.round(+e.target.value) || 7)); e.target.value = S.coh.big; save(); dirty(); });
