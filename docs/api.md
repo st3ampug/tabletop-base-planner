@@ -58,7 +58,7 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 
 **`toReserve(unit)`** takes a unit off the table into reserve, or puts an undeployed roster unit straight into reserve. Units in reserve aren't on the table: nothing collides with them, sees them or measures to them. It returns `{ ok }`.
 
-**`arrive(unit, x, y, { exact = true, searchInches = 6 })`** brings a unit from reserve onto the table with its centre at `(x, y)`, keeping its formation. With `exact: true` it refuses a blocked spot and the unit stays in reserve; with `exact: false` it takes the nearest free spot. It returns `{ ok, placed, pushed_in, check }`. Deep strike and reserve distance rules aren't enforced: check them with `measure()`.
+**`arrive(unit, x, y, { exact = true, searchInches = 6 })`** brings a unit from reserve onto the table with its centre at `(x, y)`, keeping its formation. With `exact: true` it refuses a blocked spot and the unit stays in reserve; with `exact: false` it takes the nearest free spot. It returns `{ ok, placed, pushed_in, check }`. Deep strike and reserve distance rules aren't enforced: check them with `measure()`. The landing spot is checked with the same both-ways collision test as the moves, so `check()` agrees with it.
 
 ### Moving
 

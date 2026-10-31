@@ -117,6 +117,9 @@ function apiToReserve(u){
 function apiArrive(u, x, y, opts){
   const o = opts || {}, snap = snapshot(), r = arrive(u, x, y, { exact: o.exact !== false, searchInches: o.searchInches || 6 });
   if (!r.ok) return { ok: false, error: r.error };
+  // arrive() finds its spot with the one-way test; re-check both ways round so check() can't call the landing an overlap.
+  const placedG = S.bases.filter(b => b.u === u), clash = unitBlockers(placedG, 0, 0);
+  if (clash.length){ S.bases = S.bases.filter(b => b.u !== u); S.reserve = S.reserve.concat(placedG); return { ok: false, error: 'No free spot for the unit there', blockers: clash }; }
   pushUndo(snap); changed(); const G = S.bases.filter(b => b.u === u), c = centre(G);
   return { ok: true, placed: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 }, pushed_in: toIn(r.pushed), check: check() };
 }
