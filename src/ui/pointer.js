@@ -2,6 +2,7 @@ import { S, M, T, xform, groupOf, commitTerrain, view, ruler, snapshot, pushUndo
 import { pip, segD2, rad, isHull, tryMove, moveGroup } from '../geometry.js';
 import { cv, cssW, cssH, s2w, dirty, liveMsg, clearLiveMsg, setStatus } from '../render.js';
 import { editTerrain, select } from './actions.js';
+import { hitMarker } from './markers.js';
 
 /* ---------- pointer input ---------- */
 let drag = null;           // live move overlay {sx, sy, b}
@@ -41,6 +42,8 @@ cv.addEventListener('pointerdown', e => {
   if (ptrs.size > 2) return;
   const w = s2w(p[0], p[1]);
   if (ruler.on){ g = { type:'ruler' }; ruler.a = w; ruler.b = w; dirty(); return; }
+  const mk = hitMarker(w);
+  if (mk){ select({ type:'marker', m: mk }); g = { type:'marker', m: mk, dx: w[0]-mk.x, dy: w[1]-mk.y, sx: mk.x, sy: mk.y, p, moved:false, snap: snapshot() }; cv.style.cursor = 'grabbing'; return; }
   const b = hitBase(p[0], p[1]);
   if (b){ select({ type:'base', b }); const G = S.unitMove && b.u ? S.bases.filter(x => x.u === b.u) : [b];
     g = { type:'base', b, G, sx: b.x, sy: b.y, dx: w[0]-b.x, dy: w[1]-b.y, p, moved:false, snap: snapshot() }; }
@@ -70,6 +73,10 @@ cv.addEventListener('pointermove', e => {
     dx = Math.min(Math.max(dx, -t.c[0]), M.W - t.c[0]); dy = Math.min(Math.max(dy, -t.c[1]), M.H - t.c[1]);
     groupOf(t).forEach(x => xform(x, q => [q[0]+dx, q[1]+dy])); g.last = [g.last[0]+dx, g.last[1]+dy]; dirty(); return;
   }
+  if (g.type === 'marker'){
+    if (!g.moved){ g.moved = true; pushUndo(g.snap); drag = { m: g.m, sx: g.sx, sy: g.sy }; }
+    g.m.x = Math.min(Math.max(w[0] - g.dx, 0), M.W); g.m.y = Math.min(Math.max(w[1] - g.dy, 0), M.H); dirty(); return;
+  }
   if (g.type === 'base'){
     if (!g.moved){ g.moved = true; pushUndo(g.snap); drag = { b: g.b, sx: g.sx, sy: g.sy }; }
     const hit = g.G.length > 1 ? moveGroup(g.G, w[0]-g.dx - g.b.x, w[1]-g.dy - g.b.y) : tryMove(g.b, w[0]-g.dx, w[1]-g.dy);
@@ -87,7 +94,7 @@ function endPtr(e){
     const p = pos(e), w = s2w(p[0], p[1]);
     const t = hitTerrain(w); select(t ? { type:'terrain', t } : null);
   }
-  if (g.type === 'base' && g.moved){ drag = null; save(); }
+  if ((g.type === 'base' || g.type === 'marker') && g.moved){ drag = null; save(); }
   if (g.type === 'terrain' && g.moved) commitTerrain();
   g = null; dirty();
 }

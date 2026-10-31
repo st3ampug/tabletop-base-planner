@@ -1,12 +1,13 @@
 import { IN, DC, $ } from './core.js';
 import { MAPS } from './maps.js';
-import { S, M, T, sel, setSel, pushUndo, applyState, save, saveNow, PR, savePrefs } from './state.js';
-import { rad, extents, isHull, basePoly, blockers, edgeDist, cohIssues, segCross, pip } from './geometry.js';
+import { MARKER_KINDS, S, M, T, sel, setSel, pushUndo, applyState, save, saveNow, PR, savePrefs, snapshot } from './state.js';
+import { rad, extents, isHull, basePoly, blockers, edgeDist, cohIssues, segCross, pip, engagedPairs } from './geometry.js';
 import { isSeen } from './sight.js';
 import { fit, dirty, boardImage } from './render.js';
 import { renderInspector, setMap } from './ui/panel.js';
-import { parseRoster, deployUnit, footprint, renderArmies } from './armies.js';
-import { readList } from './import.js';
+import { parseRoster, deployUnit, footprint, renderArmies, whereIs, toReserve, arrive } from './armies.js';
+import { readList, rememberSizes, moveOf } from './import.js';
+import { addMarker } from './ui/markers.js';
 import { exportText } from './ui/saveload.js';
 
 /* ---------- agent interface ---------- */
@@ -20,6 +21,7 @@ const DISP_ABBR = { tah:'take-and-hold', dis:'disruption', ptf:'purge-the-foe', 
 
 function refBases(ref){
   if (ref && typeof ref === 'object' && Array.isArray(ref.bases)) return ref.bases;
+  const mk = /^marker:(\d+)$/.exec(String(ref)); if (mk){ const m = S.markers.find(x => +x.id === +mk[1]); return m ? [{ id: 'marker:' + m.id, label: m.label || m.kind, x: m.x, y: m.y, w: m.d, h: m.d, rot: 0 }] : []; }
   if (typeof ref === 'number' || /^\d+$/.test(String(ref))){ const b = S.bases.find(x => +x.id === +ref); return b ? [b] : []; }
   if (ARMY_KEYS.indexOf(ref) >= 0) return S.bases.filter(b => b.army === ref);
   return S.bases.filter(b => b.u === ref);
@@ -72,13 +74,44 @@ function setLayout(id){
   setMap(id); saveNow(); return { ok: true, id, name: M.name, check: check() };   // bases stay where they were, so some may now overlap the new terrain
 }
 function units(army){
-  const out = {};
+  const out = {}, res = {};
   for (const b of S.bases) if (b.u && (!army || b.army === army)) (out[b.u] = out[b.u] || []).push(b);
-  return Object.keys(out).map(u => { const G = out[u], c = centre(G), key = u.slice(u.indexOf(':') + 1);
+  for (const b of S.reserve) if (b.u && (!army || b.army === army)) (res[b.u] = res[b.u] || []).push(b);
+  const list = Object.keys(out).map(u => { const G = out[u], c = centre(G), key = u.slice(u.indexOf(':') + 1);
     const un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
-    return { u, army: G[0].army, name: un ? un.name : key, models: G.length, centre: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 },
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'table', models: G.length, move_in: moveOf(u), centre: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 },
       bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot })) }; });
+  return list.concat(Object.keys(res).map(u => { const G = res[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'reserve', models: G.length, move_in: moveOf(u), centre: null,
+      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval') })) }; }));
 }
+// Reserves: take a unit off the table (or put an undeployed roster unit straight into reserve), and bring it back.
+function apiToReserve(u){
+  const i = String(u).indexOf(':'), army = String(u).slice(0, i), key = String(u).slice(i + 1);
+  if (ARMY_KEYS.indexOf(army) < 0) return { ok: false, error: 'Use a unit key like "friendly:LUC"' };
+  const un = parseRoster(S.armies[army].roster).units.find(x => x.key === key); if (!un) return { ok: false, error: 'No unit "' + u + '" in the ' + army + ' roster' };
+  if (whereIs(u) === 'reserve') return { ok: true, already: true };
+  pushUndo(); toReserve(army, un, true); changed(); return { ok: true };
+}
+function apiArrive(u, x, y, opts){
+  const o = opts || {}, snap = snapshot(), r = arrive(u, x, y, { exact: o.exact !== false, searchInches: o.searchInches || 6 });
+  if (!r.ok) return { ok: false, error: r.error };
+  pushUndo(snap); changed(); const G = S.bases.filter(b => b.u === u), c = centre(G);
+  return { ok: true, placed: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 }, pushed_in: toIn(r.pushed), check: check() };
+}
+// Markers don't block movement. kind: tunnel, deep-strike, objective or note.
+const markerOut = m => ({ id: m.id, ref: 'marker:' + m.id, kind: m.kind, x: m.x, y: m.y, d: m.d, ring_in: m.ring, label: m.label });
+function apiMarkers(){ return S.markers.map(markerOut); }
+function apiAddMarker(o){
+  const p = o || {}; if (!MARKER_KINDS[p.kind]) return { ok: false, error: 'kind must be one of ' + Object.keys(MARKER_KINDS).join(', ') };
+  if (!isFinite(p.x) || !isFinite(p.y)) return { ok: false, error: 'Give x and y in mm' };
+  pushUndo(); const m = addMarker(p.kind, +p.x, +p.y, p.label); if (p.size_mm) m.d = Math.max(5, Math.min(200, +p.size_mm)); if (p.ring_in) m.ring = Math.max(0, +p.ring_in); changed();
+  return Object.assign({ ok: true }, markerOut(m));
+}
+function apiMoveMarker(id, x, y){ const m = S.markers.find(q => +q.id === +String(id).replace('marker:', '')); if (!m) return { ok: false, error: 'No marker ' + id };
+  pushUndo(); m.x = Math.min(Math.max(+x, 0), M.W); m.y = Math.min(Math.max(+y, 0), M.H); changed(); return Object.assign({ ok: true }, markerOut(m)); }
+function apiRemoveMarker(id){ const m = S.markers.find(q => +q.id === +String(id).replace('marker:', '')); if (!m) return { ok: false, error: 'No marker ' + id };
+  pushUndo(); S.markers = S.markers.filter(q => q !== m); if (sel && sel.m === m) setSel(null); changed(); return { ok: true }; }
 // Reads a list like the Armies tab does; applies it as an army and deploys it only when every base has a size.
 function importList(text, opts){
   const o = opts || {}, army = o.army || 'friendly', sizes = o.sizes || {};
@@ -95,12 +128,9 @@ function importList(text, opts){
   if (missing.length) return { ok: false, error: 'Some units have no base size. Pass them in opts.sizes, e.g. { "Chaos Rhino": "hull 117x74" }.', units: report };
   const lines = r.units.map(g => g.key + ' | ' + g.name + ' | ' + g.bases), res = parseRoster(lines.join('\n'));
   if (res.errs.length) return { ok: false, error: res.errs.join(' '), units: report };
-  r.units.forEach((g, i) => { const one = g.parts.length === 1 ? g.parts[0] : null, ru = res.units[i];
-    if (one && one.unitName && (one.hull || one.given) && ru && ru.groups.length === 1){ const z = ru.groups[0];
-      PR.sizes[one.unitName] = z.hull ? 'hull ' + z.w + 'x' + z.h : z.w === z.h ? String(z.w) : z.w + 'x' + z.h; } });
-  savePrefs(); pushUndo();
+  rememberSizes(r, res); pushUndo();
   const A = S.armies[army]; A.roster = lines.join('\n'); A.name = (o.name || r.title || A.name).trim();
-  S.bases = S.bases.filter(b => b.army !== army); if (sel && sel.b && sel.b.army === army) setSel(null);
+  S.bases = S.bases.filter(b => b.army !== army); S.reserve = S.reserve.filter(b => b.army !== army); if (sel && sel.b && sel.b.army === army) setSel(null);
   const notInZone = [];
   if (o.deploy !== false) for (const un of res.units.slice().sort((a, b) => footprint(b) - footprint(a))) if (!deployUnit(army, un, true)) notInZone.push(army + ':' + un.key);
   changed(); saveNow();
@@ -183,21 +213,17 @@ function check(){
   const illegal = [];
   for (const b of S.bases){ const h = blockers(b, b.x, b.y, b.rot, null, true); if (h.length) illegal.push(Object.assign(baseInfo(b), { blockers: h })); }
   const coherency = []; cohIssues().forEach((set, u) => coherency.push({ u, models: [...set].map(baseInfo) }));
-  const engagement = [], lim = (S.eng === undefined ? 1 : S.eng)*IN + 0.01, F = S.bases.filter(b => b.army === 'friendly'), H = S.bases.filter(b => b.army === 'hostile'), seenPair = {};
-  for (const a of F) for (const b of H){
-    if (Math.hypot(a.x - b.x, a.y - b.y) > Math.max(a.w, a.h, b.w, b.h)*1.5 + lim) continue;
-    const d = edgeDist(a, b); if (d > lim) continue;
-    const k = (a.u || a.id) + '|' + (b.u || b.id); if (!seenPair[k] || d < seenPair[k].mm) seenPair[k] = { a: a.u || a.id, b: b.u || b.id, inches: toIn(d), mm: Math.round(d*10)/10 };
-  }
-  for (const k in seenPair) engagement.push(seenPair[k]);
-  return { ok: !illegal.length && !coherency.length, illegal, coherency, engagement, engagementRange_in: S.eng === undefined ? 1 : S.eng };
+  const engagement = engagedPairs().map(p => ({ a: p.a.u || p.a.id, b: p.b.u || p.b.id, inches: toIn(p.d), mm: Math.round(p.d*10)/10, from: baseInfo(p.a), to: baseInfo(p.b) }));
+  const reserve = [...new Set(S.reserve.map(b => b.u))];
+  return { ok: !illegal.length && !coherency.length, illegal, coherency, engagement, engagementRange_in: S.eng === undefined ? 1 : S.eng, reserve };
 }
 function image(opts){ const o = opts || {}; return boardImage(o.pxPerInch || 16, o.caption || ''); }
 function undoLast(){ const b = $('btn-undo'); if (b.disabled) return { ok: false, error: 'Nothing to undo' }; b.click(); return { ok: true }; }
 
 const planner = Object.freeze({ version: API_VERSION, getBoard: wrap(getBoard), loadBoard: wrap(loadBoard), layouts: wrap(layouts), findLayout: wrap(findLayout),
   setLayout: wrap(setLayout), units: wrap(units), importList: wrap(importList), placeUnit: wrap(placeUnit), moveUnit: wrap(moveUnit), toContact: wrap(toContact),
-  measure: wrap(measure), seen: wrap(seen), check: wrap(check), image: wrap(image), undo: wrap(undoLast) });
+  measure: wrap(measure), seen: wrap(seen), check: wrap(check), image: wrap(image), undo: wrap(undoLast),
+  toReserve: wrap(apiToReserve), arrive: wrap(apiArrive), markers: wrap(apiMarkers), addMarker: wrap(apiAddMarker), moveMarker: wrap(apiMoveMarker), removeMarker: wrap(apiRemoveMarker) });
 window.planner = planner;
 
 export { planner };

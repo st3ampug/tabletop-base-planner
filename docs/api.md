@@ -7,7 +7,7 @@
 ## Conventions
 
 - **Units:** all positions are in **millimetres**, origin top-left, y down. The board is portrait, 1117.6 × 1524 mm (44" × 60"), with the red (attacker) zone at the top. Reports give distances in both `_mm` and `_in` (inches to one decimal).
-- **References:** a function that takes a *ref* accepts a unit key (`"friendly:LUC"`), a base id (`42`), or an army (`"friendly"` / `"hostile"`). Use `units()` to list the keys.
+- **References:** a function that takes a *ref* accepts a unit key (`"friendly:LUC"`), a base id (`42`), an army (`"friendly"` / `"hostile"`), or, for `measure()`, a marker (`"marker:7"`). Use `units()` to list the keys.
 - **Distances:** always base edge to base edge.
 - **Collision:** when the interface moves or places units, it checks against blocking terrain, the board edge and **all** other models, whatever the Rules tab says. A unit never collides with its own models.
 
@@ -29,7 +29,7 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 
 ### Board
 
-**`getBoard()`** returns the board object, the same as **Save → Copy board**: `mapId`, `armies`, `bases`, settings, and a read-only `table` (zones, objectives, terrain in mm). The format is described in `docs/agent-briefing.md` and `README.md`.
+**`getBoard()`** returns the board object, the same as **Save → Copy board**: `mapId`, `armies`, `bases`, `reserve`, `markers`, settings, and a read-only `table` (zones, objectives, terrain in mm). The format is described in `docs/agent-briefing.md` and `README.md`.
 
 **`loadBoard(textOrObject)`** replaces the board. It returns `{ ok, errors, check }`, where `check` is the result of `check()`. A `table` in the input is ignored.
 
@@ -52,7 +52,11 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 - If every base has a size, it replaces that army's roster and deploys it into its zone. It returns `{ ok: true, units, faction, notInZone }`; `notInZone` lists units that didn't fit and were placed outside the zone.
 - If some sizes are missing, usually vehicles with no base, it changes nothing and returns `{ ok: false, error, units }`, where each unit shows `missingSize`. Call it again with `sizes`, e.g. `{ "Chaos Rhino": "hull 117x74" }`. Sizes are written like `40`, `120x92` or `hull 117x74`, and sizes given this way are remembered like sizes entered in the page.
 
-**`units(army?)`** returns `[{ u, army, name, models, centre: { x, y }, bases: [{ id, label, w, h, shape, x, y, rot }] }]`.
+**`units(army?)`** returns `[{ u, army, name, where, models, move_in, centre: { x, y }, bases: [{ id, label, w, h, shape, x, y, rot }] }]`. `where` is `table` or `reserve` (units in reserve have no position). `move_in` is the unit's Move from the 40kdc data, the slowest of its datasheets, or `null` if it isn't known.
+
+**`toReserve(unit)`** takes a unit off the table into reserve, or puts an undeployed roster unit straight into reserve. Units in reserve aren't on the table: nothing collides with them, sees them or measures to them. It returns `{ ok }`.
+
+**`arrive(unit, x, y, { exact = true, searchInches = 6 })`** brings a unit from reserve onto the table with its centre at `(x, y)`, keeping its formation. With `exact: true` it refuses a blocked spot and the unit stays in reserve; with `exact: false` it takes the nearest free spot. It returns `{ ok, placed, pushed_in, check }`. Deep strike and reserve distance rules aren't enforced: check them with `measure()`.
 
 ### Moving
 
@@ -65,16 +69,27 @@ node tools/planner/run.mjs my-plan.mjs --out planner-out [--board start.board.js
 
 **`toContact(ref, targetRef, { maxInches })`** moves the unit straight at the closest model of the target until base contact (within 0.5 mm), or as far as it can. It returns `{ ok, gap_in, gap_mm, moved_in, from, to, blockers }`. Use `maxInches` for a charge roll; when it falls short, `gap_in` is what's left.
 
+### Markers
+
+Markers are tokens that don't block movement: `tunnel`, `deep-strike`, `objective` and `note`. Each has a ref `"marker:<id>"` that `measure()` accepts.
+
+**`markers()`** returns `[{ id, ref, kind, x, y, d, ring_in, label }]`, where `d` is the diameter in mm and `ring_in` a ring from its edge (0 for none).
+
+**`addMarker({ kind, x, y, label, ring_in, size_mm })`** adds a marker and returns it with `ok`.
+
+**`moveMarker(id, x, y)`** and **`removeMarker(id)`** take the id or the ref.
+
 ### Questions
 
 **`measure(a, b)`** returns `{ inches, mm, from, to, crossesWalls, wall }`, base edge to base edge between the closest pair of models of `a` and `b`. `crossesWalls` tells whether the straight line between those two models' centres crosses a blocking wall.
 
 **`seen(target, { by })`** tells whether a point `{ x, y }`, a base or a unit is visible. `by` is a unit key, a list of keys, or an army; without it, the units currently watched in the page are used. It returns `{ ok, seen, fraction, by }`. A unit counts as seen if any sampled point of any of its bases is seen, and `fraction` is the share of sampled points seen. It uses the page's line-of-sight model: top-down, walls block, terrain areas block sight through them (a Rules setting), no heights, and the range setting applies. It leaves the page's sight settings as they were.
 
-**`check()`** returns `{ ok, illegal, coherency, engagement, engagementRange_in }`:
+**`check()`** returns `{ ok, illegal, coherency, engagement, engagementRange_in, reserve }`:
 - `illegal`: models overlapping blocking terrain or another model, with what they overlap.
 - `coherency`: units out of coherency, using the Rules tab settings, with the models concerned.
 - `engagement`: friendly and hostile unit pairs within the engagement-range setting (Rules tab, default 1"), with the closest distance.
+- `reserve`: unit keys in reserve.
 - `ok` is true when there's nothing illegal and nothing out of coherency. Engagement isn't an error.
 
 ## Example (in a browser console)

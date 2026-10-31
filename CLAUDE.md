@@ -39,6 +39,7 @@ npm test                         # builds into build/ and runs all three
 | `render.js` | `fit()`, `draw()` (one function draws everything), tags, the status line |
 | `ui/pointer.js` | Pointer events: drag bases or units, pan, pinch zoom, ruler, terrain dragging |
 | `ui/actions.js` | Select, add, remove, duplicate and rotate bases; terrain edits |
+| `ui/markers.js` | Markers (tunnel, deep strike, objective, note): adding, drawing, the marker inspector. They live in `S.markers` and never block movement |
 | `ui/panel.js` | The side panel: inspector, size chips, layout picker and thumbnails, rules settings |
 | `armies.js` | Roster format parser `parseRoster()`, deployment into zones `deployUnit()` / `deployAll()`, swap sides, the Armies tab |
 | `import.js` | `readList()`: parses Warhammer-app exports and plain text lists and fuzzy-matches units to the catalogue; the import preview |
@@ -79,10 +80,11 @@ Rules for the modules:
 - **Source:** [40kdc-data](https://github.com/wn-mitch/40kdc-data), CC BY 4.0. The attribution must stay in the page (Save tab) and in the README. The layouts were imported there from Battlemaster and are marked "pre-launch provisional".
 - **Regenerating the layouts:** `tools/dc_export.py`. It includes one deliberate fix (a generator 4.5" outside its area in Purge vs Recon 1), with an assertion that stops if the source changes.
 - **Regenerating the units:** `tools/units_export.py`. The unit records also have `profiles` with `W` (wounds) per model name, which the rounds-and-replay feature needs. See `docs/spec-rounds-and-replay.md`.
-- **Base sizes:** vehicle hulls have no size in the data, so users enter them and the sizes are remembered in prefs.
+- **Base sizes:** vehicle hulls have no size in the data, so users enter them. Any size a user changes in the import preview is remembered in prefs under `"<datasheet>|<model>"` and used on the next import; setting it back to the data value forgets it.
+- **Move:** `tools/units_export.py` stores each unit's Move (the slowest model's) as the last field of its catalogue entry.
 
 ## Open work
 
 - `docs/spec-rounds-and-replay.md`: game rounds, wounds, casualties and replay. This is the next feature.
-- `docs/spec-agent-api.md`: the agent interface. Parts A and B are built (`window.planner`, `tools/planner/run.mjs`, the engagement-range setting); C (reserves tray, markers, Move rings and move budget, engaged-pair marks on the board) and D (labels, import summary, size overrides) are next.
+- `docs/spec-agent-api.md`: the agent interface. A, B, D and most of C are built. Reserves live in `S.reserve` (bases off the table, so collision, sight and coherency never see them); Move comes from the catalogue (`moveOf(u)`, the slowest datasheet). The move budget (flagging over-long moves) waits for rounds and replay.
 - Known limits: no terrain height (line of sight is top-down) or objective control.

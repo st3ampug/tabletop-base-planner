@@ -43,6 +43,49 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   await pg.fill('#imp-text', fs.readFileSync(path.join(__dirname, 'fixtures/stephen-imperial-fists.txt'), 'utf8')); await pg.click('#imp-read'); await pg.click('#imp-hostile');
   const ho = await P(() => { const p = window.__planner, B = p.S.bases.filter(b => b.army === 'hostile'); return { n: B.length, illegal: B.filter(b => p.blockers(b, b.x, b.y, b.rot).length).length }; });
   ok(ho.n === 49 && ho.illegal === 0, 'imported hostile army deployed: ' + JSON.stringify(ho));
+  ok(await pg.isVisible('#imp-done') && (await pg.textContent('#imp-done')).includes('11 units, 49 models'), 'a summary stays after an import: ' + (await pg.textContent('#imp-done')).slice(0, 90));
+  await pg.click('#imp-done-ok'); ok(!(await pg.isVisible('#imp-done')), 'the summary can be dismissed');
+  // --- your own size for any unit is remembered, and forgotten when set back to the data value
+  const readFriendly = async () => { if (await pg.isVisible('#imp-done')) await pg.click('#imp-done-ok'); await P(() => document.getElementById('army-friendly').click()); await P(() => document.getElementById('imp').open = true);
+    await pg.fill('#imp-text', fs.readFileSync(path.join(__dirname, 'fixtures/children-of-the-recon.txt'), 'utf8')); await pg.click('#imp-read'); };
+  const cardIdx = name => pg.evaluate(n => { const c = [...document.querySelectorAll('.impunit')].find(c => c.querySelector('b') && c.querySelector('b').textContent === n); return c ? +c.querySelector('input[id^=imp-b-]').id.slice(6) : -1; }, name);
+  await readFriendly(); let fbi = await cardIdx('Flawless Blades');
+  await pg.fill('#imp-b-' + fbi, '6 @ 32 FB2'); await pg.dispatchEvent('#imp-b-' + fbi, 'change'); await pg.click('#imp-friendly');
+  ok(await P(() => JSON.parse(localStorage.getItem('tabletop-base-planner-prefs')).sizes['Flawless Blades|Flawless Blade']) === '32', 'a changed size is remembered for that datasheet');
+  ok((await pg.textContent('#imp-done')).includes('Your sizes'), 'the summary lists your sizes');
+  await readFriendly(); fbi = await cardIdx('Flawless Blades');
+  ok((await pg.inputValue('#imp-b-' + fbi)).includes('@ 32') && await P(() => [...document.querySelectorAll('.impunit')].some(c => /Your size/.test(c.textContent) && /Flawless/.test(c.textContent))), 'the next import uses your size and says so');
+  const fbInputs = await P(() => [...document.querySelectorAll('input[id^=imp-b-]')].filter(i => /@ 32 FB/.test(i.value)).map(i => [i.id, i.value]));
+  ok(fbInputs.length === 3, 'all three Flawless Blades units pick up your size (' + fbInputs.length + ')');
+  for (const [id, v] of fbInputs){ await pg.fill('#' + id, v.replace('@ 32 FB', '@ 40 FB')); await pg.dispatchEvent('#' + id, 'change'); }
+  await pg.click('#imp-friendly');
+  ok(await P(() => !('Flawless Blades|Flawless Blade' in JSON.parse(localStorage.getItem('tabletop-base-planner-prefs')).sizes)), 'setting the size back to the data value forgets it');
+  ok(await P(() => window.__planner.S.bases.filter(b => b.army === 'friendly').length) === 46, 'the friendly army is back to 46 models');
+  await pg.click('#imp-done-ok');
+  // --- Move and Advance ring chips from the data
+  const inf = await P(() => { const p = window.__planner, b = p.S.bases.find(b => b.u === 'friendly:INF'), r = document.getElementById('cv').getBoundingClientRect(); return [r.left + b.x*p.view.s + p.view.ox, r.top + b.y*p.view.s + p.view.oy]; });
+  await pg.mouse.click(inf[0], inf[1]);
+  ok((await pg.textContent('#ring-move')) === 'Move 7"' && (await pg.textContent('#ring-adv')) === 'Advance 13"', 'Move and Advance rings come from the data for Infractors');
+  await pg.click('#ring-move'); ok(await P(() => window.__planner.S.ring) === 7, 'the Move chip sets a 7" ring'); await pg.click('#ring-0');
+  // --- reserves from the Armies tab
+  await pg.click('.tabs button[data-tab="army"]').catch(() => {}); await P(() => document.getElementById('army-friendly').click());
+  await pg.getByLabel('Put Maulerfiend in reserve').first().click();
+  ok(await P(() => window.__planner.S.reserve.length === 1 && !window.__planner.S.bases.some(b => b.u === 'friendly:MAU')), 'Reserve takes the unit off the table');
+  ok((await pg.textContent('#army-box')).includes('1 in reserve'), 'the Armies tab counts units in reserve');
+  await pg.getByLabel('Bring Maulerfiend onto the table').click();
+  ok(await P(() => window.__planner.S.reserve.length === 0 && window.__planner.S.bases.some(b => b.u === 'friendly:MAU') && !window.__planner.S.bases.filter(b => b.u === 'friendly:MAU').some(b => window.__planner.blockers(b, b.x, b.y, b.rot, null, true).length)), 'Arrive brings it back on a free spot');
+  await pg.click('#btn-undo'); await pg.click('#btn-undo');
+  ok(await P(() => window.__planner.S.reserve.length === 0 && window.__planner.S.bases.length === 95), 'undo restores the unit to where it was');
+  // --- markers: add, drag, ring, delete
+  await pg.click('.tabs button[data-tab="bases"]').catch(() => {}); await pg.click('#mk-add-tunnel');
+  ok(await P(() => window.__planner.S.markers.length === 1 && window.__planner.S.markers[0].kind === 'tunnel') && await pg.isVisible('#mk-kind'), 'Tunnel marker adds a marker and selects it');
+  await pg.fill('#mk-label', 'Trygon'); await pg.click('#mk-ring-6');
+  const mkp = await P(() => { const p = window.__planner, m = p.S.markers[0], r = document.getElementById('cv').getBoundingClientRect(); return { x: r.left + m.x*p.view.s + p.view.ox, y: r.top + m.y*p.view.s + p.view.oy, mx: m.x, s: p.view.s }; });
+  await pg.mouse.move(mkp.x, mkp.y); await pg.mouse.down(); await pg.mouse.move(mkp.x + 60, mkp.y, { steps: 5 }); await pg.mouse.up();
+  ok(await P(() => { const m = window.__planner.S.markers[0]; return m.label === 'Trygon' && m.ring === 6; }) && Math.abs(await P(() => window.__planner.S.markers[0].x) - (mkp.mx + 60/mkp.s)) < 2, 'the marker takes a label and ring, and drags');
+  await pg.screenshot({ path: shots + '/marker.png' });
+  await pg.keyboard.press('Delete'); ok(await P(() => window.__planner.S.markers.length) === 0, 'Delete removes the selected marker');
+  await pg.click('#btn-undo'); ok(await P(() => window.__planner.S.markers.length) === 1, 'undo brings the marker back');
   // --- coherency: pull one Infractor 6" away in model mode
   ok(await P(() => window.__planner.cohIssues().size) === 0, 'deployed units are in coherency');
   await P(() => { const p = window.__planner, b = p.S.bases.find(b => b.u === 'friendly:INF' && b.label === 'INF'); b.y -= 6*25.4; });

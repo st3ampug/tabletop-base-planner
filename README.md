@@ -11,6 +11,8 @@ A web page for planning Warhammer 40,000 (11th edition) deployments with true-si
 - **Deploying:** a friendly and a hostile army. "Deploy all" places a whole army inside its zone, clear of walls and other bases. "Swap sides" turns both armies to the opposite zones.
 - **Moving:** drag a whole unit or a single model, with the distance moved shown in inches. Rectangular hulls for vehicles without a base. A separate ruler.
 - **Line of sight:** watch enemy units (or your own) and the board is tinted red everywhere they can see, so you can find where to end a move out of sight. Walls block, terrain areas block sight through them (a setting), an optional range limits it, and with a unit selected the clear areas fit its biggest base. There are no terrain heights.
+- **Reserves and markers:** put units in reserve and bring them on later; add tunnel markers, deep strike points, objective markers and notes, with optional rings. Markers don't block movement.
+- **Engagement range:** a red line links friendly and enemy models within the engagement-range setting.
 - **Range rings:** select a unit and show a ring at 1", 2", 3", 6", 9", 12" or any other distance, measured from every base edge.
 - **Coherency:** models out of coherency are outlined in orange. The distance, the size at which a unit needs two neighbours, and the "one group" rule are settings in the Rules tab.
 - **Collision:** each terrain piece either blocks bases or lets them enter. A blocked move can stop at the obstacle or be allowed and flagged in red.

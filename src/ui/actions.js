@@ -8,7 +8,7 @@ import { renderArmies } from '../armies.js';
 /* ---------- actions ---------- */
 let editTerrain = false;
 function select(x, stay){
-  const same = (!x && !sel) || (x && sel && x.type === sel.type && x.b === sel.b && x.t === sel.t);
+  const same = (!x && !sel) || (x && sel && x.type === sel.type && x.b === sel.b && x.t === sel.t && x.m === sel.m);
   setSel(x); if (!same){ renderInspector(); if (x && !stay) setTab('sel'); } dirty();
 }
 function sizeName(b){ return isHull(b) ? b.w + ' × ' + b.h + ' mm hull' : b.w === b.h ? b.w + ' mm round' : b.w + ' × ' + b.h + ' mm oval'; }

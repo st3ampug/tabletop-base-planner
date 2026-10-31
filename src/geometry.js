@@ -133,6 +133,17 @@ function ringPath(c, b, d, x, y){
   }
   c.closePath();
 }
+// Friendly and hostile units within the engagement range (S.eng, inches): the closest pair of models per unit pair.
+function engagedPairs(){
+  const lim = (S.eng === undefined ? 1 : S.eng)*IN + 0.01, F = S.bases.filter(b => b.army === 'friendly'), H = S.bases.filter(b => b.army === 'hostile'), best = {};
+  if (!(lim > 0.02)) return [];
+  for (const a of F) for (const b of H){
+    if (Math.hypot(a.x - b.x, a.y - b.y) > reach(a) + reach(b) + lim) continue;
+    const d = edgeDist(a, b); if (d > lim) continue;
+    const k = (a.u || a.id) + '|' + (b.u || b.id); if (!best[k] || d < best[k].d) best[k] = { a, b, d };
+  }
+  return Object.values(best);
+}
 function moveGroup(G, dx, dy){
   for (const b of G){ const e = extents(b, rad(b.rot));
     dx = Math.min(Math.max(dx, e[0] - b.x), M.W - e[0] - b.x); dy = Math.min(Math.max(dy, e[1] - b.y), M.H - e[1] - b.y); }
@@ -161,4 +172,4 @@ function findSpot(b, cx, cy){
   return clampToBoard(b, cx, cy, b.rot);
 }
 
-export { segCross, pip, segD2, rad, extents, isHull, basePoly, clampToBoard, ruleOf, blockers, tryMove, edgeDist, cohIssues, ringPath, moveGroup, findSpot, outline, reach };
+export { engagedPairs, segCross, pip, segD2, rad, extents, isHull, basePoly, clampToBoard, ruleOf, blockers, tryMove, edgeDist, cohIssues, ringPath, moveGroup, findSpot, outline, reach };
