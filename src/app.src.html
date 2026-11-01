@@ -71,6 +71,9 @@ details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 .unit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--chip)}
 .unit.on{border-color:var(--accent)}
 .unit.res{border-style:dashed}
+.unit.dead{opacity:.6;border-style:dotted}
+.wnd{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.wnd .n{font-family:var(--mono);font-weight:700;font-size:15px;min-width:3.4em;text-align:center}
 .unit .tag{font-family:var(--mono);font-weight:700;font-size:11.5px;border-radius:5px;padding:3px 6px;min-width:38px;text-align:center}
 .unit .nm{font-weight:600;font-size:13px;min-width:0;overflow-wrap:anywhere}
 .unit .sz{grid-column:2 / -1;font-family:var(--mono);font-size:11px;color:var(--muted)}
@@ -127,8 +130,43 @@ dialog#picker::backdrop,dialog#help::backdrop{background:rgba(0,0,0,.45)}
 .unit .acts .btn.eye{padding:5px 7px}
 .dragmode span{background:rgba(10,14,13,.82);color:#f1f5f3;font:600 11px var(--font);padding:0 8px;display:flex;align-items:center;letter-spacing:.04em;text-transform:uppercase}
 details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:8px;margin:8px 0 0}
+.gamebar{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;padding:6px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.gamebar[hidden]{display:none}
+.gb-step{flex:1 1 260px;min-width:0;display:flex;gap:8px;align-items:baseline;white-space:nowrap}
+.gb-ph{font-weight:700}
+.gb-now{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:13px}
+.gb-of{color:var(--muted);font-size:12px;margin-left:auto}
+.gb-vp{display:flex;gap:10px;align-items:center}
+.gb-rp{display:flex;gap:4px;align-items:center}
+.gb-rp .btn{min-height:32px;min-width:34px;padding:3px 8px}
+.gb-rp input[type=range]{width:150px;flex:0 1 150px}
+.gb-act{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.gamebar.replay{background:#24302c;color:#eef3f1;border-bottom-color:#000}
+.gamebar.replay .gb-now,.gamebar.replay .gb-of{color:#b9c7c2}
+.gamebar.editing{background:#fff3cd;color:#3a2c00}
+.gamebar.editing .gb-now,.gamebar.editing .gb-of{color:#6b5a1f}
+.gamebar.replay .btn:not(.primary),.gamebar.editing .btn:not(.primary){color:#17201d;background:#f5f7f6;border-color:#9aa8a3}
+.gamebar.replay .btn:disabled{opacity:.35}
+.vp{display:flex;gap:4px;align-items:center}
+.vp .dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.35)}
+.vp .n{font-family:var(--mono);font-weight:700;min-width:2.2em;text-align:center;font-variant-numeric:tabular-nums}
+.vp .btn{min-height:32px;min-width:32px;padding:3px 8px}
+.steps{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto}
+.steps .st{display:flex;gap:8px;align-items:baseline;font-size:12.5px;border:0;border-bottom:1px solid var(--line);padding:4px 2px;background:none;text-align:left;cursor:pointer;width:100%}
+.steps .st:hover{background:var(--chip)}
+.steps .st.cur{background:var(--accent);color:var(--accent-fg)}
+.steps .st.cur .i,.steps .st.cur .s{color:var(--accent-fg)}
+.steps .st:disabled{cursor:default}
+.steps .st .i{font-family:var(--mono);color:var(--muted);min-width:2em;text-align:right}
+.steps .st .l{flex:1;min-width:0}
+.steps .st .s{font-family:var(--mono);color:var(--muted);font-size:11px;white-space:nowrap}
 
 @media (max-width:820px){
+  .gamebar{padding:5px 16px;gap:4px 10px}
+  .gb-step{flex-basis:100%}
+  .gb-rp{flex:1 1 100%}
+  .gb-rp input[type=range]{flex:1 1 auto;width:auto}
+  .gb-vp{flex:1}
   .bar h1{display:none}
   .bar{padding:6px 16px}
   .bar select{max-width:none}
@@ -138,11 +176,11 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
   .work{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
   .panel{border-left:0;border-top:1px solid var(--line);max-height:44vh}
   .tabs{display:flex;border-bottom:1px solid var(--line)}
-  .tabs button{flex:1;min-width:0;background:none;border:0;border-bottom:3px solid transparent;padding:9px 2px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;min-height:40px}
+  .tabs button{flex:1 1 auto;min-width:0;background:none;border:0;border-bottom:3px solid transparent;padding:9px 2px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;min-height:40px}
   .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
   .sec{display:none;border-bottom:0}
   .panel[data-tab="army"] .sec[data-sec="army"],.panel[data-tab="sel"] .sec[data-sec="sel"],.panel[data-tab="bases"] .sec[data-sec="bases"],
-  .panel[data-tab="terrain"] .sec[data-sec="terrain"],.panel[data-tab="rules"] .sec[data-sec="rules"],.panel[data-tab="save"] .sec[data-sec="save"]{display:flex}
+  .panel[data-tab="terrain"] .sec[data-sec="terrain"],.panel[data-tab="rules"] .sec[data-sec="rules"],.panel[data-tab="save"] .sec[data-sec="save"],.panel[data-tab="game"] .sec[data-sec="game"]{display:flex}
   .sec h2{display:none}
 }
 </style>
@@ -160,29 +198,53 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
 <dialog id="help" aria-labelledby="help-title">
   <div class="pk help">
     <div class="pkhead"><h2 id="help-title">How to use the planner</h2><button class="btn" id="help-close">Close</button></div>
-    <p>Plan deployments and moves with true-size bases on the 11th-edition layouts. Everything is measured in inches, base edge to base edge, and saves itself in this browser.</p>
+    <p>Plan deployments and moves with true-size bases on the 11th-edition layouts, and record a game phase by phase. Everything is measured in inches, base edge to base edge, and saves itself in this browser. On a phone the controls are in tabs under the board; on a wider screen they're all in the panel on the right.</p>
 
-    <h2>Using the planner</h2>
-    <h3>The board</h3>
+    <h2>The board</h2>
     <ul>
       <li><b>Layout:</b> tap the layout name at the top. Pick your Force Disposition (row) against your opponent's (column), then one of the variants.</li>
-      <li><b>Moving:</b> drag a base to move it. The distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
+      <li><b>Moving:</b> drag a base to move it; the distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
       <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
       <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
-      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency. A red line links a friendly and an enemy model within engagement range.</li>
-      <li><b>Markers:</b> tunnel markers, deep strike points, objective markers and notes sit on the board without blocking movement. Drag them like bases, and give them a label or a ring from the Selected tab.</li>
-      <li><b>Sight:</b> the <b>Sight</b> button on the board tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; turning Sight on with nothing watched watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
+      <li><b>Undo:</b> the <b>Undo</b> button takes back the last change, including wounds, saved steps and deleted games.</li>
+      <li><b>Sight:</b> the <b>Sight</b> button tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; with nothing watched, Sight watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
+      <li><b>Markers:</b> tunnel markers, deep strike points, objective markers and notes sit on the board without blocking movement. Add them in the Bases tab, drag them like bases, and give them a label or a ring in the Selected tab.</li>
     </ul>
-    <h3>The tabs</h3>
+    <h3>What the marks mean</h3>
     <ul>
-      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, put units in <b>Reserve</b> and bring them on with <b>Arrive</b>, watch units for the Sight overlay (the eye buttons), and edit the roster by hand. Change a base size in the list preview and the planner remembers it for that unit next time.</li>
-      <li><b>Selected:</b> the tapped base or terrain piece. Turn oval and hull bases, change the label or colour, show a range ring around the model or unit (1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data), duplicate or remove.</li>
-      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list, and add markers.</li>
-      <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
-      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
-      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file. AI assistants and scripts can also drive the page directly through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
+      <li><b>Red dashed outline:</b> a base in an illegal position, overlapping a wall or another base.</li>
+      <li><b>Orange dashed outline:</b> a model out of unit coherency.</li>
+      <li><b>Red line between two models:</b> a friendly and an enemy model within engagement range.</li>
+      <li><b>Small red number on a base:</b> the wounds a model has left, once it has lost some.</li>
+      <li><b>Yellow ring:</b> the range ring of the selected model or unit.</li>
     </ul>
-    <h3>Keys</h3>
+
+    <h2>The tabs</h2>
+    <ul>
+      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Check the units, fill in anything marked red (vehicles without a base need a hull size), then use it as the friendly or hostile army; it deploys into its zone straight away, with each model's wounds from the data. A base size you change in the preview is remembered for that unit next time. Here you also set each army's name, colour and zone, <b>Swap sides</b>, deploy or remove units, put units in <b>Reserve</b> and bring them on with <b>Arrive</b>, and watch units for Sight (the eye buttons). Under <b>Edit roster</b> you can write a list by hand, one unit per line, e.g. <code>LUC | Lucius + Flawless Blades | 1 @ 50 LUC w6, 6 @ 40 FB w3</code>, where <code>w6</code> is the wounds per model.</li>
+      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list, and add markers.</li>
+      <li><b>Selected:</b> the base, marker or terrain piece you tapped.
+        <ul>
+          <li><b>Wounds:</b> <b>−1</b> takes a wound off, <b>+1</b> gives one back. A model with none left, or one you <b>Destroy</b>, leaves the table as a casualty; <b>Restore one</b> brings the unit's last casualty back where it fell.</li>
+          <li><b>Range rings:</b> 1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data, around the model or the whole unit.</li>
+          <li><b>The base:</b> turn oval and hull bases, change the label, colour or wounds per model, duplicate or remove it.</li>
+        </ul></li>
+      <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
+      <li><b>Rules:</b> whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. These defaults are 10th-edition values; set them to your 11th-edition cards.</li>
+      <li><b>Game:</b> start, follow and replay a recorded game (see below).</li>
+      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, and load a board, a copied game or a map from text or a file. AI assistants and scripts can also drive the page through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
+    </ul>
+
+    <h2>Recording a game</h2>
+    <ul>
+      <li><b>Starting:</b> deploy both armies, then in the Game tab check the attacker (normally the army in the red zone) and the phases, and press <b>Start game</b>. The positions now are saved as step 0. A game has 5 battle rounds, each the attacker's turn then the defender's, with a step for every phase.</li>
+      <li><b>The game bar:</b> while a game is open, a bar under the top bar shows the phase to play, whose turn it is, and each army's victory points with − and +. Play the phase on the board, then press <b>Save step</b>: it keeps where every model is, which are in reserve or destroyed, and the score, and moves on to the next phase.</li>
+      <li><b>Replay:</b> press <b>◀</b>, drag the slider, or tap a step in the Game tab to see the board as it was then. Each moved model shows a line from where it was a step before, each unit that moved shows its longest move in inches, and destroyed models are faded outlines. <b>▶</b> moves on one step and <b>▶▶</b> plays the game through, moving the models. Rings, coherency and Sight work on the step you're looking at. A replayed step is read-only: dragging pans the board and the keys do nothing. <b>Back to game</b>, or the far right of the slider, returns to the board as it is now.</li>
+      <li><b>Correcting a step:</b> while replaying, press <b>Edit this step</b>. The board goes to that step (the bar turns yellow); move, wound or restore models and fix the score, then choose <b>Save, later steps unchanged</b> (later steps keep their positions), <b>Save and carry forward</b> (models the later steps didn't move stay where you put them) or <b>Cancel</b>. Your board comes back as it was before the edit either way.</li>
+      <li><b>In the Game tab:</b> the list of saved steps with their scores, <b>Delete last step</b>, <b>Copy game</b> (the game and the table as text, for another device or an analysis AI), and <b>Close game</b>. A closed game stays with the board; <b>Open</b> puts the models back where its last step had them.</li>
+    </ul>
+
+    <h2>Keys</h2>
     <ul>
       <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · arrow keys nudge the selection 1 mm, with <kbd>Shift</kbd> 1" · <kbd>R</kbd> turn 15° · <kbd>D</kbd> duplicate · <kbd>Delete</kbd> remove</li>
     </ul>
@@ -190,15 +252,15 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
     <h2>Through a game</h2>
     <ol>
       <li><b>Pick the layout.</b> Agree Force Dispositions with your opponent and choose the matching layout.</li>
-      <li><b>Load both armies.</b> Import your list as friendly and your opponent's as hostile in the Armies tab. Each army deploys into its zone straight away.</li>
+      <li><b>Load both armies.</b> Import your list as friendly and your opponent's as hostile in the Armies tab.</li>
       <li><b>Set the sides.</b> The attacker deploys in the red zone at the top. If you're on the wrong side, press <b>Swap sides</b>.</li>
-      <li><b>Reserves.</b> Put units that start off the table in reserve from the Armies tab. When one arrives, press <b>Arrive</b>; it appears in the middle of the view for you to drag into place.</li>
+      <li><b>Reserves.</b> Put units that start off the table in <b>Reserve</b> from the Armies tab.</li>
       <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
-      <li><b>Keep the deployment.</b> In the Save tab, press <b>Duplicate this board</b> and rename the copy, e.g. "Deployment", so you can come back to it.</li>
-      <li><b>Play each turn.</b> Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings (the Move and Advance rings show how far a unit can go), and remove destroyed units from the Selected tab. Duplicate the board at the end of a turn to keep a record, e.g. "Round 2, hostile".</li>
-      <li><b>Review.</b> Copy any board as text from the Save tab. It includes the table layout, so an analysis AI can read the positions.</li>
+      <li><b>Start the game.</b> In the Game tab, press <b>Start game</b>. The deployment is step 0.</li>
+      <li><b>Play each phase.</b> The game bar shows the phase. Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move with the distance readout, the ruler and the Move and Advance rings. Bring reserves on with <b>Arrive</b>; they appear in the middle of the view for you to drag into place. Take wounds off models in the Selected tab as they're hit. Change the score with − and +, then press <b>Save step</b>.</li>
+      <li><b>Fix mistakes.</b> If a step was saved wrong, show it with ◀ and press <b>Edit this step</b>.</li>
+      <li><b>Review.</b> Press <b>▶▶</b> to play the game through, or step through it with ◀ ▶. <b>Copy game</b> gives you the whole game as text to load on another device (Save tab, <b>Load from text</b>) or to give to an analysis AI.</li>
     </ol>
-    <p class="legend">Recording a game round by round, with wounds and replay, is planned. Until then, a board per turn keeps the history.</p>
   </div>
 </dialog>
 
@@ -212,6 +274,13 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
     <div id="pk-custom"></div>
   </div>
 </dialog>
+
+<div class="gamebar" id="gamebar" hidden>
+  <span class="gb-step" id="gb-step"><b class="gb-ph" id="gb-phase"></b><span class="gb-now" id="gb-now"></span><span class="gb-of k" id="gb-of"></span></span>
+  <span class="gb-rp" id="gb-rp"></span>
+  <span class="gb-vp" id="gb-vp"></span>
+  <span class="gb-act" id="gb-act"></span>
+</div>
 
 <div class="work">
   <div class="stage" id="stage">
@@ -228,6 +297,7 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
       <button role="tab" data-tab="sel" aria-selected="false">Selected</button>
       <button role="tab" data-tab="terrain" aria-selected="false">Terrain</button>
       <button role="tab" data-tab="rules" aria-selected="false">Rules</button>
+      <button role="tab" data-tab="game" aria-selected="false">Game</button>
       <button role="tab" data-tab="save" aria-selected="false">Save</button>
     </div>
     <div class="secs">
@@ -328,6 +398,11 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
         <p class="hint">Walls and solid scenery always block sight. Areas block it like 10th-edition ruins: models see into an area and out of it, not through it. Set this to your 11th-edition card. Range is measured from the watching model's base edge. There are no terrain heights, and models don't block sight.</p>
       </section>
 
+      <section class="sec" data-sec="game">
+        <h2>Game</h2>
+        <div id="game-box" style="display:flex;flex-direction:column;gap:10px"></div>
+      </section>
+
       <section class="sec" data-sec="save">
         <h2>Boards</h2>
         <p class="hint">Each board keeps its own layout, armies and positions, and saves itself in this browser.</p>
@@ -337,7 +412,7 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
           <button class="btn" id="bd-dup">Duplicate this board</button>
         </div>
         <h2 style="margin-top:6px">Save and load</h2>
-        <p class="hint">To move a board to another device, copy the text below and load it there. A map file loads the same way. The copied text also describes the table (zones, objective centres, terrain and walls in mm) for anyone analysing it.</p>
+        <p class="hint">To move a board to another device, copy the text below and load it there. A copied game or a map file loads the same way. The copied text also describes the table (zones, objective centres, terrain and walls in mm) for anyone analysing it.</p>
         <textarea id="io" spellcheck="false" aria-label="Board or map as JSON text"></textarea>
         <div class="row">
           <button class="btn" id="io-copy">Copy board</button>

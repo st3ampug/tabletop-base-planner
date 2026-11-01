@@ -9,6 +9,8 @@ import { parseRoster, deployUnit, footprint, renderArmies, whereIs, toReserve, a
 import { readList, rememberSizes, moveOf } from './import.js';
 import { addMarker } from './ui/markers.js';
 import { exportText } from './ui/saveload.js';
+import { openGame, startGame, saveStep, setVP, gameSummary, woundsLeft, woundBase, destroyBase, restoreBase } from './game.js';
+import { renderGame } from './ui/game.js';
 
 /* ---------- agent interface ---------- */
 // window.planner: the documented, versioned interface for scripts and AI agents (docs/api.md).
@@ -95,16 +97,20 @@ function setLayout(id){
   setMap(id); saveNow(); return { ok: true, id, name: M.name, check: check() };   // bases stay where they were, so some may now overlap the new terrain
 }
 function units(army){
-  const out = {}, res = {};
+  const out = {}, res = {}, dead = {};
+  for (const b of S.dead) if (b.u && (!army || b.army === army)) (dead[b.u] = dead[b.u] || []).push(b);
   for (const b of S.bases) if (b.u && (!army || b.army === army)) (out[b.u] = out[b.u] || []).push(b);
   for (const b of S.reserve) if (b.u && (!army || b.army === army)) (res[b.u] = res[b.u] || []).push(b);
   const list = Object.keys(out).map(u => { const G = out[u], c = centre(G), key = u.slice(u.indexOf(':') + 1);
     const un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
-    return { u, army: G[0].army, name: un ? un.name : key, where: 'table', models: G.length, move_in: moveOf(u), centre: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 },
-      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot })) }; });
-  return list.concat(Object.keys(res).map(u => { const G = res[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
-    return { u, army: G[0].army, name: un ? un.name : key, where: 'reserve', models: G.length, move_in: moveOf(u), centre: null,
-      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval') })) }; }));
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'table', models: G.length, destroyed: (dead[u] || []).length, move_in: moveOf(u), centre: { x: Math.round(c[0]*10)/10, y: Math.round(c[1]*10)/10 },
+      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot, wounds: b.maxW || 1, woundsLeft: woundsLeft(b) })) }; });
+  const gone = Object.keys(dead).filter(u => !out[u] && !res[u]).map(u => { const G = dead[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'destroyed', models: 0, destroyed: G.length, move_in: moveOf(u), centre: null,
+      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), x: b.x, y: b.y, rot: b.rot, wounds: b.maxW || 1, woundsLeft: 0 })) }; });
+  return list.concat(gone, Object.keys(res).map(u => { const G = res[u], key = u.slice(u.indexOf(':') + 1), un = parseRoster(S.armies[G[0].army].roster).units.find(x => x.key === key);
+    return { u, army: G[0].army, name: un ? un.name : key, where: 'reserve', models: G.length, destroyed: (dead[u] || []).length, move_in: moveOf(u), centre: null,
+      bases: G.map(b => ({ id: b.id, label: b.label, w: b.w, h: b.h, shape: b.shape || (b.w === b.h ? 'round' : 'oval'), wounds: b.maxW || 1 })) }; }));
 }
 // Reserves: take a unit off the table (or put an undeployed roster unit straight into reserve), and bring it back.
 function apiToReserve(u){
@@ -250,10 +256,35 @@ function check(){
 function image(opts){ const o = opts || {}; return boardImage(o.pxPerInch || 16, o.caption || ''); }
 function undoLast(){ const b = $('btn-undo'); if (b.disabled) return { ok: false, error: 'Nothing to undo' }; b.click(); return { ok: true }; }
 
+// Casualties: wounds on one model, destroying whole units, restoring destroyed models.
+function apiWound(ref, n){
+  const b = S.bases.find(x => +x.id === +ref); if (!b) return { ok: false, error: 'Give the id of a model on the table (planner.units() lists them)' };
+  const d = n === undefined ? 1 : Math.round(+n); if (!isFinite(d)) return { ok: false, error: 'n must be a number of wounds' };
+  const r = woundBase(b, d); changed(); renderGame(); return { ok: true, id: b.id, wounds: r.wounds, of: b.maxW || 1, destroyed: r.destroyed };
+}
+function apiDestroy(ref){
+  const G = refBases(ref).filter(b => S.bases.indexOf(b) >= 0); if (!G.length) return { ok: false, error: 'No model or unit "' + ref + '" on the table' };
+  pushUndo(); G.forEach(destroyBase); changed(); renderGame(); return { ok: true, destroyed: G.map(b => b.id) };
+}
+function apiRestore(ref){
+  const G = /^\d+$/.test(String(ref)) ? S.dead.filter(b => +b.id === +ref) : S.dead.filter(b => b.u === ref); if (!G.length) return { ok: false, error: 'Nothing destroyed matches "' + ref + '"' };
+  pushUndo(); G.forEach(restoreBase); changed(); renderGame(); return { ok: true, restored: G.map(b => b.id), check: check() };
+}
+
+// Games: rounds and phases, with a saved step per phase (docs/spec-rounds-and-replay.md).
+function apiGame(){ const g = openGame(); return g ? Object.assign({ ok: true }, gameSummary(g)) : { ok: false, error: 'No game is open', games: S.games.map(x => ({ id: x.id, name: x.name, steps: x.steps.length })) }; }
+function apiStartGame(opts){ if (openGame()) return { ok: false, error: 'A game is already open. Close it in the Game tab first.' }; const r = startGame(opts); if (r.ok){ renderGame(); changed(); } return r; }
+function apiSaveStep(opts){ const g = openGame(); if (g && opts && opts.vp){ for (const k of ARMY_KEYS) if (isFinite(opts.vp[k])) g.vp[k] = Math.max(0, Math.round(+opts.vp[k])); }
+  const r = saveStep(opts); if (r.ok){ renderGame(); changed(); } return r; }
+function apiSetVP(army, value){ if (!openGame()) return { ok: false, error: 'No game is open' }; if (ARMY_KEYS.indexOf(army) < 0) return { ok: false, error: 'army must be "friendly" or "hostile"' };
+  setVP(army, value); renderGame(); return { ok: true, vp: Object.assign({}, openGame().vp) }; }
+
 const planner = Object.freeze({ version: API_VERSION, getBoard: wrap(getBoard), loadBoard: wrap(loadBoard), layouts: wrap(layouts), findLayout: wrap(findLayout),
   setLayout: wrap(setLayout), units: wrap(units), importList: wrap(importList), placeUnit: wrap(placeUnit), moveUnit: wrap(moveUnit), toContact: wrap(toContact),
   measure: wrap(measure), seen: wrap(seen), canPlace: wrap(canPlace), check: wrap(check), image: wrap(image), undo: wrap(undoLast),
-  toReserve: wrap(apiToReserve), arrive: wrap(apiArrive), markers: wrap(apiMarkers), addMarker: wrap(apiAddMarker), moveMarker: wrap(apiMoveMarker), removeMarker: wrap(apiRemoveMarker) });
+  toReserve: wrap(apiToReserve), arrive: wrap(apiArrive), markers: wrap(apiMarkers), addMarker: wrap(apiAddMarker), moveMarker: wrap(apiMoveMarker), removeMarker: wrap(apiRemoveMarker),
+  wound: wrap(apiWound), destroy: wrap(apiDestroy), restore: wrap(apiRestore),
+  game: wrap(apiGame), startGame: wrap(apiStartGame), saveStep: wrap(apiSaveStep), setVP: wrap(apiSetVP) });
 window.planner = planner;
 
 export { planner };

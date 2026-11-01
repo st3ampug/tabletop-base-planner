@@ -82,7 +82,7 @@ function readList(text){
   for (const e of entries){
     const u = matchUnit(e.name, fac); e.unit = u; e.parts = []; e.flags = [];
     if (!u){ e.flags.push('Not found in the unit list. Enter the bases.'); e.parts.push({ n: e.cnt || 1, size: '', label: initials(e.name) }); continue; }
-    const comp = (u[5] || [[u[0], u[3], u[4], u[2]]]).map(m => ({ name: m[0], min: m[1], max: m[2], code: m[3] || u[2], n: 0 }));
+    const comp = (u[5] || [[u[0], u[3], u[4], u[2], u[7]]]).map(m => ({ name: m[0], min: m[1], max: m[2], code: m[3] || u[2], wounds: typeof m[4] === 'number' ? m[4] : typeof u[7] === 'number' ? u[7] : null, n: 0 }));
     let counted = false;
     for (const [n, nm] of e.models){ const q = toks(nm); let bi = -1, bs = 0;
       comp.forEach((c, i) => { const T = new Set(toks(c.name)); const s = score(q, T) + (q.length === T.size ? 0.05 : 0); if (s > bs){ bs = s; bi = i; } });
@@ -92,7 +92,8 @@ function readList(text){
     for (const c of comp) if (c.n > 0){
       const z = sizeFor(u[0], c.name, c.code);
       if (!z.size) e.flags.push((c.code === 'h' ? 'Vehicle hull with no size in the data' : 'No base size in the data') + ' for ' + c.name + '. Measure it and enter e.g. ' + (c.code === 'h' ? 'hull 117x74.' : '60.'));
-      e.parts.push({ n: c.n, size: z.size, data: z.data, label: '', model: c.name, models: [c.name], remembered: z.mine, unitName: u[0], hull: c.code === 'h' });
+      if (c.wounds === null) e.flags.push('No Wounds value in the data for ' + c.name + '. It counts as 1 W; add e.g. w3 after the label if it has more.');
+      e.parts.push({ n: c.n, size: z.size, data: z.data, label: '', model: c.name, models: [c.name], remembered: z.mine, unitName: u[0], hull: c.code === 'h', wounds: c.wounds || 1 });
     }
   }
   // merge attached groups into planner units
@@ -110,8 +111,8 @@ function readList(text){
     for (const e of mem){ const lab = e === body ? key : leaderLabel(e.name, body.name);
       for (const p of e.parts) g.parts.push(Object.assign({}, p, { label: (mem.length > 1 && e !== body) ? lab : key })); g.flags.push(...e.flags); }
     const merged = []; for (const p of g.parts){ const last = merged[merged.length-1];
-      if (last && last.size === p.size && last.data === p.data && last.label === p.label && p.size){ last.n += p.n; last.models = last.models.concat(p.models || []); } else merged.push(Object.assign({}, p, { models: (p.models || []).slice() })); }
-    g.parts = merged; g.bases = g.parts.map(p => p.n + ' @ ' + (p.size || '?') + ' ' + p.label).join(', ');
+      if (last && last.size === p.size && last.data === p.data && last.label === p.label && last.wounds === p.wounds && p.size){ last.n += p.n; last.models = last.models.concat(p.models || []); } else merged.push(Object.assign({}, p, { models: (p.models || []).slice() })); }
+    g.parts = merged; g.bases = g.parts.map(p => p.n + ' @ ' + (p.size || '?') + ' ' + p.label + (p.wounds > 1 ? ' w' + p.wounds : '')).join(', ');
     g.remembered = g.parts.some(p => p.remembered);
     g.mine = g.parts.filter(p => p.remembered).map(p => p.models.join(' and ') + ': ' + p.size + (p.data ? ' (data: ' + p.data + ')' : ' (no size in the data)'));
   }
@@ -160,7 +161,7 @@ function renderImport(box){
         if (res.errs.length){ msg.hidden = false; msg.textContent = res.errs.join(' '); return; }
         rememberSizes(r, res); pushUndo();
         const A = S.armies[target]; A.roster = lines.join('\n'); A.name = (IMP.name || '').trim() || A.name;
-        S.bases = S.bases.filter(b => b.army !== target); S.reserve = S.reserve.filter(b => b.army !== target); if (sel && sel.b && sel.b.army === target) setSel(null);
+        S.bases = S.bases.filter(b => b.army !== target); S.reserve = S.reserve.filter(b => b.army !== target); S.dead = S.dead.filter(b => b.army !== target); if (sel && sel.b && sel.b.army === target) setSel(null);
         setArmyView(target); IMP = null; save(); deployAllQuiet(target); importDone(target, r, res); renderArmies(); renderInspector(); dirty();
         setStatus(A.name + ' set as the ' + target + ' army and deployed in the ' + SIDE_NAME[A.side].toLowerCase());
       };
@@ -174,6 +175,6 @@ function renderImport(box){
   box.appendChild(det);
 }
 function deployAllQuiet(k){ const { units } = parseRoster(S.armies[k].roster);
-  for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key) && !S.reserve.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
+  for (const un of units.filter(un => !S.bases.some(b => b.u === k + ':' + un.key) && !S.reserve.some(b => b.u === k + ':' + un.key) && !S.dead.some(b => b.u === k + ':' + un.key)).sort((a, b) => footprint(b) - footprint(a))) deployUnit(k, un, true); save(); }
 
 export { readList, renderImport, rememberSizes, moveOf };

@@ -9,6 +9,8 @@ import { readList } from './import.js';
 import { newId, renderBoards } from './ui/boards.js';
 import { select } from './ui/actions.js';
 import { isSeen, sightStats, sightTime } from './sight.js';
+import { renderGame } from './ui/game.js';
+import { resolveStep, applyStep } from './game.js';
 
 /* ---------- boot ---------- */
 function seedExample(){
@@ -19,10 +21,10 @@ try { const ix = JSON.parse(lsGet(BOARDS) || 'null'); if (ix && ix.order && ix.o
 if (BX.current){ const raw = lsGet(BOARDS + ':' + BX.current); if (raw){ try { applyState(JSON.parse(raw)); restored = true; } catch(e){} } }
 else { const legacy = lsGet(STORE); if (legacy){ try { applyState(JSON.parse(legacy)); restored = true; } catch(e){} }
   const id = newId(); setBX({ current: id, order: [id], boards: { [id]: { name: 'Board 1', updated: Date.now(), mapId: S.mapId } } }); }
-if (!restored){ loadTerrain(); seedExample(); buildMapSelect(); syncRulesUI(); renderChips(); renderInspector(); renderArmies(); }
+if (!restored){ loadTerrain(); seedExample(); buildMapSelect(); syncRulesUI(); renderChips(); renderInspector(); renderArmies(); renderGame(); }
 saveNow(); renderBoards();
 renderNewColours(); setUnitMove(S.unitMove);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
 resize();
 if (!restored) setStatus('Both example armies deployed. Change them in the Armies tab.');
-window.__planner = { get S(){ return S; }, get M(){ return M; }, get T(){ return T; }, get BX(){ return BX; }, blockers, tryMove, moveGroup, parseRoster, readList, deployAll, setMap, cohIssues, edgeDist, view, MAPS, applyState, select, isSeen, sightStats, sightTime };
+window.__planner = { get S(){ return S; }, get M(){ return M; }, get T(){ return T; }, get BX(){ return BX; }, blockers, tryMove, moveGroup, parseRoster, readList, deployAll, setMap, cohIssues, edgeDist, view, MAPS, applyState, select, isSeen, sightStats, sightTime, resolveStep, applyStep };

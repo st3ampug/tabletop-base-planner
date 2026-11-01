@@ -5,6 +5,7 @@ import { clampToBoard } from '../geometry.js';
 import { fit, setStatus } from '../render.js';
 import { select } from './actions.js';
 import { buildMapSelect } from './panel.js';
+import { loadGame } from './game.js';
 
 /* ---------- save / load ---------- */
 function ioMsg(t){ const m = $('io-msg'); m.hidden = !t; m.textContent = t || ''; }
@@ -29,8 +30,9 @@ function loadText(txt){
       const id = 'custom-' + Date.now().toString(36); MAPS[id] = normMap(id, o); pushUndo(); S.custom[id] = o; S.mapId = id; setM(MAPS[id]); loadTerrain();
       buildMapSelect(); select(null); for (const b of S.bases){ const p = clampToBoard(b, b.x, b.y, b.rot); b.x = p[0]; b.y = p[1]; } fit(); save(); ioMsg(''); setStatus('Map "' + M.name + '" added'); return;
     }
+    if (o && o.game && !Array.isArray(o.bases)){ const r = loadGame(o); if (!r.ok){ ioMsg(r.error); return; } ioMsg(''); setStatus('Game loaded and opened at its last step'); return; }
     if (o && Array.isArray(o.bases)){ pushUndo(); applyState(o); fit(); save(); ioMsg(''); setStatus('Board loaded'); return; }
-    ioMsg('That JSON is neither a saved board nor a map. A board has "bases"; a map has "terrain".');
+    ioMsg('That JSON is not a saved board, a game or a map. A board has "bases", a game has "game" and a map has "terrain".');
   } catch(e){ ioMsg(e.message); }
 }
 $('io-copy').addEventListener('click', () => { const t = exportText(); $('io').value = t;

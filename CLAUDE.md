@@ -14,11 +14,12 @@ python3 tools/build.py build     # same, into build/ (git-ignored), for testing
 node tests/test-import.js build  # army-list import against tests/fixtures/*.txt
 node tests/test-ui.js build      # end-to-end: picker, import, deploy, coherency, rings, boards, help, line of sight
 node tests/test-api.js build     # window.planner, the agent interface
-npm test                         # builds into build/ and runs all three
+node tests/test-game.js build    # wounds and games: steps, VP, reload, size budget, phone
+npm test                         # builds into build/ and runs all four
 ```
 
 - **Tests:** Playwright, run against `build/index.html` via `file://`. Install Playwright locally (`npm i -D playwright`) and point it at your Chromium. The tests currently pass `executablePath: '/opt/pw-browsers/chromium'` with a fallback.
-- **Before committing:** always run both test files, and commit the rebuilt `index.html` together with the source change. `index.html` is a build output; the workflow rebuilds it, but keep it committed so the repo still holds a working page that can be downloaded and opened offline.
+- **Before committing:** always run all the test files (`npm test`), and commit the rebuilt `index.html` together with the source change. `index.html` is a build output; the workflow rebuilds it, but keep it committed so the repo still holds a working page that can be downloaded and opened offline.
 - **Screenshots:** `tests/test-ui.js` writes them to `build/shots/`. Look at them after visual changes (desktop 1280×900 and phone 390×844).
 
 ## How the code is organised
@@ -43,6 +44,9 @@ npm test                         # builds into build/ and runs all three
 | `ui/panel.js` | The side panel: inspector, size chips, layout picker and thumbnails, rules settings |
 | `armies.js` | Roster format parser `parseRoster()`, deployment into zones `deployUnit()` / `deployAll()`, swap sides, the Armies tab |
 | `import.js` | `readList()`: parses Warhammer-app exports and plain text lists and fuzzy-matches units to the catalogue; the import preview |
+| `game.js` | Games (`S.games`, `S.game`): `startGame()`, `saveStep()`, `nextSlot()`, `resolveStep()` (step 0 plus the diffs, cached), `applyStep()`, `setVP()`, correcting a step (`beginEdit()`/`finishEdit()`, state in `S.editing`); casualties (`woundBase()`, `destroyBase()`, `restoreBase()`, destroyed models in `S.dead`). Model format in `docs/agent-briefing.md` |
+| `ui/game.js` | The Game tab and the game bar under the header: playing (phase, VP, Save step), replay and editing modes; Copy game and `loadGame()` |
+| `ui/replay.js` | Replay of saved steps: `showStep()`, `play()`, `stopReplay()`. `draw()` swaps the step's models into `S.bases` while it draws, so rings, coherency and sight work on the step; any undo step ends the replay |
 | `ui/watch.js` | The Sight button, watch toggles (`S.los.watch`) and the line-of-sight settings |
 | `ui/saveload.js` | Board text export (`exportText()` adds a read-only `table` block), import |
 | `ui/boards.js` | Named boards in `localStorage` |
@@ -79,12 +83,12 @@ Rules for the modules:
 
 - **Source:** [40kdc-data](https://github.com/wn-mitch/40kdc-data), CC BY 4.0. The attribution must stay in the page (Save tab) and in the README. The layouts were imported there from Battlemaster and are marked "pre-launch provisional".
 - **Regenerating the layouts:** `tools/dc_export.py`. It includes one deliberate fix (a generator 4.5" outside its area in Purge vs Recon 1), with an assertion that stops if the source changes.
-- **Regenerating the units:** `tools/units_export.py`. The unit records also have `profiles` with `W` (wounds) per model name, which the rounds-and-replay feature needs. See `docs/spec-rounds-and-replay.md`.
+- **Regenerating the units:** `tools/units_export.py`. Wounds come from the unit records' `profiles` (`W` per model name).
 - **Base sizes:** vehicle hulls have no size in the data, so users enter them. Any size a user changes in the import preview is remembered in prefs under `"<datasheet>|<model>"` and used on the next import; setting it back to the data value forgets it.
-- **Move:** `tools/units_export.py` stores each unit's Move (the slowest model's) as the last field of its catalogue entry.
+- **Move and Wounds:** `tools/units_export.py` stores each unit's Move (the slowest model's) and Wounds in its catalogue entry, and Wounds per model in each composition entry. The import writes wounds into the roster (`w3`), and bases carry them as `maxW` (left out when 1).
 
 ## Open work
 
-- `docs/spec-rounds-and-replay.md`: game rounds, wounds, casualties and replay. This is the next feature.
+- `docs/spec-rounds-and-replay.md`: built except step 7 (reserve and deep-strike placement aids, embarking and disembarking). The move budget from `docs/spec-agent-api.md` can now use the steps.
 - `docs/spec-agent-api.md`: the agent interface. A, B, D and most of C are built. Reserves live in `S.reserve` (bases off the table, so collision, sight and coherency never see them); Move comes from the catalogue (`moveOf(u)`, the slowest datasheet). The move budget (flagging over-long moves) waits for rounds and replay.
 - Known limits: no terrain height (line of sight is top-down) or objective control.

@@ -5,6 +5,7 @@ import { drawMarkers } from './ui/markers.js';
 import { drag } from './ui/pointer.js';
 import { updateBaseWarn } from './ui/panel.js';
 import { drawSight, sightStatus } from './sight.js';
+import { replayOn, replayBases, drawReplayUnder, drawReplayOver } from './ui/replay.js';
 
 /* ---------- canvas ---------- */
 const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
@@ -61,7 +62,12 @@ function tag(text, x, y, warn){
   ctx.fillStyle = warn ? '#8f1d17' : 'rgba(10,14,13,.88)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(px, py, w, 22, 5) : ctx.rect(px, py, w, 22); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText(text, px + 6, py + 11.5); ctx.restore();
 }
+// In replay the board draws the shown step's models in place of the live ones, then puts the live ones back.
 function draw(){
+  if (!replayOn()) return drawBoard();
+  const live = S.bases; S.bases = replayBases(); try { drawBoard(); } finally { S.bases = live; }
+}
+function drawBoard(){
   raf = 0;
   const dpr = cv.width/cssW, s = view.s, px = 1/s;
   ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -100,6 +106,7 @@ function draw(){
   for (const t of T) if (t.objective) objIcon(t);
   for (const m of M.markers){ ctx.fillStyle = 'rgba(20,26,24,.55)'; ctx.beginPath(); ctx.moveTo(m[0], m[1]-12); ctx.lineTo(m[0]+12, m[1]); ctx.lineTo(m[0], m[1]+12); ctx.lineTo(m[0]-12, m[1]); ctx.fill(); }
   drawSight(ctx);
+  if (replayOn()) drawReplayUnder(ctx, px);
   // bases
   let badCount = 0; const selUnit = sel && sel.type === 'base' && S.unitMove ? sel.b.u : null;
   const coh = cohIssues(); let cohUnits = [];
@@ -124,6 +131,10 @@ function draw(){
       if (fs*s >= 6){ ctx.fillStyle = lum(b.colour) > 0.55 ? '#111' : '#fff'; ctx.font = '700 ' + fs + 'px ' + getComputedStyle(document.body).fontFamily;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(b.label, b.x, b.y + fs*0.05); }
     }
+    // Wounds left, on models with more than 1 W that have lost some: a red badge at the edge of the base.
+    if (b.maxW > 1 && b.wounds !== undefined && b.wounds < b.maxW){ const rr = Math.max(Math.min(b.w, b.h)*0.2, 5*px), bx = b.x + b.w*0.32, by = b.y - b.h*0.32;
+      ctx.beginPath(); ctx.arc(bx, by, rr, 0, 7); ctx.fillStyle = '#b3261e'; ctx.fill(); ctx.lineWidth = Math.max(px, 0.8); ctx.strokeStyle = '#fff'; ctx.stroke();
+      if (rr*s >= 5){ ctx.fillStyle = '#fff'; ctx.font = '700 ' + rr*1.25 + 'px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(b.wounds), bx, by + rr*0.06); } }
     if (isHull(b)){ const r = rad(b.rot), f = b.w/2 - Math.min(b.w, b.h)*0.18; ctx.beginPath(); ctx.moveTo(b.x + Math.cos(r)*f, b.y + Math.sin(r)*f); ctx.lineTo(b.x + Math.cos(r)*(b.w/2 - 2), b.y + Math.sin(r)*(b.w/2 - 2));
       ctx.lineWidth = Math.max(2*px, 1.5); ctx.strokeStyle = lum(b.colour) > 0.55 ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.6)'; ctx.stroke(); }
     const cb = b.u && coh.get(b.u);
@@ -134,6 +145,7 @@ function draw(){
   // engaged pairs: a short red link between the closest friendly and hostile models in engagement range
   for (const p of engagedPairs()){ ctx.beginPath(); ctx.moveTo(p.a.x, p.a.y); ctx.lineTo(p.b.x, p.b.y); ctx.lineWidth = 3*px; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke(); ctx.lineWidth = 1.6*px; ctx.strokeStyle = '#ff5a3c'; ctx.stroke(); }
   drawMarkers(ctx, px, s);
+  if (replayOn()) drawReplayOver();
   // overlays
   if (drag && drag.b){
     const b = drag.b, d = Math.hypot(b.x - drag.sx, b.y - drag.sy);
@@ -175,4 +187,4 @@ function setStatus(text, warn, passive){
   if (!passive){ liveMsg = true; clearTimeout(msgT); msgT = setTimeout(() => { liveMsg = false; dirty(); }, 2200); }
 }
 
-export { boardImage, cv, stage, cssW, cssH, resize, fit, s2w, dirty, lum, ZONE, liveMsg, clearLiveMsg, setStatus };
+export { tag, boardImage, cv, stage, cssW, cssH, resize, fit, s2w, dirty, lum, ZONE, liveMsg, clearLiveMsg, setStatus };

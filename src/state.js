@@ -3,36 +3,39 @@ import { normMap, MAPS, DEFAULT_MAP } from './maps.js';
 import { dirty } from './render.js';
 import { renderInspector, buildMapSelect, syncRulesUI, renderChips } from './ui/panel.js';
 import { renderArmies } from './armies.js';
+import { cleanGames } from './game.js';
+import { renderGame } from './ui/game.js';
+import { replayOn, stopReplay } from './ui/replay.js';
 
 /* ---------- state ---------- */
 const DEFAULT_SIZES = ROUNDS.map(d => [d, d]).concat(OVALS);
 const DEFAULT_ARMIES = {
   friendly: { name: 'Children of the Recon', colour: '#a8348f', side: 'blue', roster: [
-    "# Label | Unit | bases: count @ size [label], separated by commas",
-    "# Sizes in mm: 40 round, 120x92 oval, hull 117x74 for a vehicle without a base",
-    "LUC | Lucius + Flawless Blades | 1 @ 50 LUC, 6 @ 40 FB",
-    "LEX | Lord Exultant + Infractors | 1 @ 40 LEX, 1 @ 32 OB, 9 @ 32 INF",
-    "SOR | Sorcerer + Tormentors | 1 @ 32 SOR, 1 @ 32 OB, 4 @ 32 TOR",
-    "DP1 | Daemon Prince (Faultless Opportunist) | 1 @ 60 DP1",
-    "DP2 | Daemon Prince (Distortion) | 1 @ 60 DP2",
-    "TOR | Tormentors | 1 @ 32 OB, 4 @ 32 TOR",
-    "RH | Chaos Rhino | 1 @ hull 117x74 RH",
-    "FB2 | Flawless Blades | 6 @ 40 FB2",
-    "FB3 | Flawless Blades | 6 @ 40 FB3",
-    "MF1 | Maulerfiend | 1 @ 120x92 MF1",
-    "MF2 | Maulerfiend | 1 @ 120x92 MF2" ].join('\n') },
+    "# Label | Unit | bases: count @ size [label] [wounds], separated by commas",
+    "# Sizes in mm: 40 round, 120x92 oval, hull 117x74 for a vehicle without a base. w3 = 3 wounds per model (none means 1)",
+    "LUC | Lucius + Flawless Blades | 1 @ 50 LUC w6, 6 @ 40 FB w3",
+    "LEX | Lord Exultant + Infractors | 1 @ 40 LEX w5, 1 @ 32 OB w2, 9 @ 32 INF w2",
+    "SOR | Sorcerer + Tormentors | 1 @ 32 SOR w4, 1 @ 32 OB w2, 4 @ 32 TOR w2",
+    "DP1 | Daemon Prince (Faultless Opportunist) | 1 @ 60 DP1 w10",
+    "DP2 | Daemon Prince (Distortion) | 1 @ 60 DP2 w10",
+    "TOR | Tormentors | 1 @ 32 OB w2, 4 @ 32 TOR w2",
+    "RH | Chaos Rhino | 1 @ hull 117x74 RH w10",
+    "FB2 | Flawless Blades | 6 @ 40 FB2 w3",
+    "FB3 | Flawless Blades | 6 @ 40 FB3 w3",
+    "MF1 | Maulerfiend | 1 @ 120x92 MF1 w12",
+    "MF2 | Maulerfiend | 1 @ 120x92 MF2 w12" ].join('\n') },
   hostile: { name: 'Stephen: Imperial Fists', colour: '#d1a51c', side: 'red', roster: [
-    "LYS | Lysander + Ancient + Assault Terminators | 1 @ 40 LYS, 1 @ 40 ANC, 10 @ 40 TH",
-    "GAR | Tor Garadon + Eradicators | 1 @ 40 GAR, 6 @ 40 ERA",
-    "IM1 | Impulsor | 1 @ 100 IM1",
-    "IM2 | Impulsor | 1 @ 100 IM2",
-    "ER1 | Eradicators (melta) | 3 @ 40 ER1",
-    "ER2 | Eradicators (melta) | 3 @ 40 ER2",
-    "INC | Inceptors | 6 @ 40 INC",
-    "ICR | Incursors | 5 @ 32 ICR",
-    "RED | Redemptor Dreadnought | 1 @ 90 RED",
-    "RV1 | Reivers | 5 @ 32 RV1",
-    "RV2 | Reivers | 5 @ 32 RV2" ].join('\n') }
+    "LYS | Lysander + Ancient + Assault Terminators | 1 @ 40 LYS w7, 1 @ 40 ANC w5, 10 @ 40 TH w3",
+    "GAR | Tor Garadon + Eradicators | 1 @ 40 GAR w6, 6 @ 40 ERA w3",
+    "IM1 | Impulsor | 1 @ 100 IM1 w11",
+    "IM2 | Impulsor | 1 @ 100 IM2 w11",
+    "ER1 | Eradicators (melta) | 3 @ 40 ER1 w3",
+    "ER2 | Eradicators (melta) | 3 @ 40 ER2 w3",
+    "INC | Inceptors | 6 @ 40 INC w3",
+    "ICR | Incursors | 5 @ 32 ICR w2",
+    "RED | Redemptor Dreadnought | 1 @ 90 RED w12",
+    "RV1 | Reivers | 5 @ 32 RV1 w2",
+    "RV2 | Reivers | 5 @ 32 RV2 w2" ].join('\n') }
 };
 const cloneArmies = a => JSON.parse(JSON.stringify(a));
 // Marker kinds: name, default diameter in mm, colour. Markers don't block movement.
@@ -41,9 +44,11 @@ const MARKER_KINDS = { tunnel: { name:'Tunnel marker', d: 40, colour:'#6b4a2b' }
 function cleanBases(list){
   return (Array.isArray(list) ? list : []).filter(b => b && b.w > 0 && b.h > 0 && isFinite(b.x) && isFinite(b.y)).map(b => ({
     id: b.id, w:+b.w, h:+b.h, x:+b.x, y:+b.y, rot:+b.rot || 0, colour: b.colour || COLOURS[0], label: String(b.label || '').slice(0,6),
-    shape: b.shape === 'hull' ? 'hull' : undefined, army: b.army || undefined, u: b.u || undefined }));
+    shape: b.shape === 'hull' ? 'hull' : undefined, army: b.army || undefined, u: b.u || undefined,
+    maxW: b.maxW > 1 ? Math.min(99, Math.round(+b.maxW)) : undefined,
+    wounds: isFinite(b.wounds) && b.wounds >= 0 && b.wounds < (b.maxW || 1) ? Math.round(+b.wounds) : undefined }));
 }
-let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], reserve:[], markers:[], mode:'stop', baseCollide:true, nextId:1 };
+let S = { v:2, mapId: MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0], custom:{}, terrain:{}, sizes: DEFAULT_SIZES.map(z => z.slice()), armies: cloneArmies(DEFAULT_ARMIES), unitMove:true, coh: { on:true, dist:2, big:7, group:true }, ring: 0, los: { on:false, watch:[], range:0, areas:true, partial:true }, eng: 1, bases:[], reserve:[], dead:[], markers:[], games:[], game:null, editing:null, mode:'stop', baseCollide:true, nextId:1 };
 let M = MAPS[S.mapId];
 let T = [];                // live terrain of the current layout
 // Other modules can read these live bindings but not assign them, so they go through setters.
@@ -63,9 +68,10 @@ const undo = [];
 const view = { s: 0.3, ox: 0, oy: 0 };
 const ruler = { on:false, a:null, b:null };
 
-function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, reserve:S.reserve, markers:S.markers, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
-function pushUndo(snap){ undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
+function snapshot(){ return JSON.stringify({ mapId:S.mapId, custom:S.custom, terrain:S.terrain, sizes:S.sizes, armies:S.armies, unitMove:S.unitMove, coh:S.coh, ring:S.ring, los:S.los, eng:S.eng, bases:S.bases, reserve:S.reserve, dead:S.dead, markers:S.markers, games:S.games, game:S.game, editing:S.editing, mode:S.mode, baseCollide:S.baseCollide, nextId:S.nextId, v:2 }, (k, v) => k === '_bad' ? undefined : v); }
+function pushUndo(snap){ if (replayOn()) stopReplay(); undo.push(snap || snapshot()); if (undo.length > 60) undo.shift(); $('btn-undo').disabled = false; }
 function applyState(o){
+  stopReplay();
   const custom = {};
   for (const k in (o.custom || {})) { try { MAPS[k] = normMap(k, o.custom[k]); custom[k] = o.custom[k]; } catch(e){} }
   const terrain = {};
@@ -76,14 +82,18 @@ function applyState(o){
   const coh = Object.assign({ on:true, dist:2, big:7, group:true }, o.coh || {});
   const lo = o.los || {}, los = { on: lo.on === true, watch: Array.isArray(lo.watch) ? lo.watch.filter(u => typeof u === 'string') : [], range: Math.max(0, +lo.range || 0), areas: lo.areas !== false, partial: lo.partial !== false };
   S = { v:2, mapId: MAPS[o.mapId] ? o.mapId : (MAPS[DEFAULT_MAP] ? DEFAULT_MAP : Object.keys(MAPS)[0]), custom, terrain, sizes, armies, unitMove: o.unitMove !== false, coh, ring: +o.ring || 0, los, eng: o.eng === undefined ? 1 : Math.max(0, +o.eng || 0),
-        bases: cleanBases(o.bases), reserve: cleanBases(o.reserve),
+        bases: cleanBases(o.bases), reserve: cleanBases(o.reserve), dead: cleanBases(o.dead).map(b => Object.assign(b, { wounds: 0 })),
         markers: (Array.isArray(o.markers) ? o.markers : []).filter(m => m && isFinite(m.x) && isFinite(m.y)).map(m => ({
           id: m.id, kind: MARKER_KINDS[m.kind] ? m.kind : 'note', x:+m.x, y:+m.y, d: Math.max(5, +m.d || MARKER_KINDS[MARKER_KINDS[m.kind] ? m.kind : 'note'].d), ring: Math.max(0, +m.ring || 0), label: String(m.label || '').slice(0, 24) })),
+        games: cleanGames(o.games), game: null, editing: null,
         mode: o.mode === 'flag' ? 'flag' : 'stop', baseCollide: o.baseCollide !== false, nextId: o.nextId || 1 };
-  for (const b of S.bases.concat(S.reserve, S.markers)) if (!b.id) b.id = S.nextId++;
-  S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...S.bases.concat(S.reserve, S.markers).map(b => +b.id || 0)));
+  if (S.games.some(g => g.id === o.game)) S.game = o.game;
+  const E = o.editing; if (E && E.game === S.game && E.keep && Number.isInteger(E.n))
+    S.editing = { game: E.game, n: E.n, keep: { bases: cleanBases(E.keep.bases), reserve: cleanBases(E.keep.reserve), dead: cleanBases(E.keep.dead) }, vp: { friendly: +(E.vp && E.vp.friendly) || 0, hostile: +(E.vp && E.vp.hostile) || 0 } };
+  for (const b of S.bases.concat(S.reserve, S.dead, S.markers)) if (!b.id) b.id = S.nextId++;
+  S.nextId = Math.max(S.nextId, 1 + Math.max(0, ...S.bases.concat(S.reserve, S.dead, S.markers).map(b => +b.id || 0)), ...S.games.map(g => 1 + Math.max(0, ...Object.keys(g.roster).map(Number))));
   M = MAPS[S.mapId]; sel = null; loadTerrain();
-  buildMapSelect(); syncRulesUI(); renderChips(); renderInspector(); renderArmies(); dirty();
+  buildMapSelect(); syncRulesUI(); renderChips(); renderInspector(); renderArmies(); renderGame(); dirty();
 }
 let saveT = 0;
 const BOARDS = 'tabletop-base-planner-boards', PREFS = 'tabletop-base-planner-prefs';
