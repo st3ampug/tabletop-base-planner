@@ -206,34 +206,53 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
 <dialog id="help" aria-labelledby="help-title">
   <div class="pk help">
     <div class="pkhead"><h2 id="help-title">How to use the planner</h2><button class="btn" id="help-close">Close</button></div>
-    <p>Plan deployments and moves with true-size bases on the 11th-edition layouts. Everything is measured in inches, base edge to base edge, and saves itself in this browser.</p>
+    <p>Plan deployments and moves with true-size bases on the 11th-edition layouts, and record a game phase by phase. Everything is measured in inches, base edge to base edge, and saves itself in this browser. On a phone the controls are in tabs under the board; on a wider screen they're all in the panel on the right.</p>
 
-    <h2>Using the planner</h2>
-    <h3>The board</h3>
+    <h2>The board</h2>
     <ul>
       <li><b>Layout:</b> tap the layout name at the top. Pick your Force Disposition (row) against your opponent's (column), then one of the variants.</li>
-      <li><b>Moving:</b> drag a base to move it. The distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
+      <li><b>Moving:</b> drag a base to move it; the distance moved shows in inches. The <b>Drag</b> switch at the top right of the board chooses between moving the whole unit and one model.</li>
       <li><b>View:</b> drag the table to pan, pinch or scroll to zoom, and press <b>Fit</b> to see the whole board.</li>
       <li><b>Ruler:</b> turn it on and drag anywhere on the board to measure.</li>
-      <li><b>Warnings:</b> a red dashed outline marks a base in an illegal position (overlapping a wall or another base). An orange dashed outline marks a model out of unit coherency. A red line links a friendly and an enemy model within engagement range. A small red number on a base is the wounds a model has left, once it has lost some.</li>
-      <li><b>Markers:</b> tunnel markers, deep strike points, objective markers and notes sit on the board without blocking movement. Drag them like bases, and give them a label or a ring from the Selected tab.</li>
-      <li><b>Sight:</b> the <b>Sight</b> button on the board tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; turning Sight on with nothing watched watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
+      <li><b>Undo:</b> the <b>Undo</b> button takes back the last change, including wounds, saved steps and deleted games.</li>
+      <li><b>Sight:</b> the <b>Sight</b> button tints red everywhere the watched units can see, so the clear areas are out of their sight. Pick units to watch with the eye buttons in the Armies tab; with nothing watched, Sight watches the whole hostile army. With one of your units selected, the clear areas shrink so its biggest base fits there wholly out of sight.</li>
+      <li><b>Markers:</b> tunnel markers, deep strike points, objective markers and notes sit on the board without blocking movement. Add them in the Bases tab, drag them like bases, and give them a label or a ring in the Selected tab.</li>
     </ul>
-    <h3>The tabs</h3>
+    <h3>What the marks mean</h3>
     <ul>
-      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Fill in anything marked red (vehicles without a base need a hull size, which is remembered), then use it as the friendly or hostile army. Here you also set each army's name, colour and zone, swap sides, deploy or remove units, put units in <b>Reserve</b> and bring them on with <b>Arrive</b>, watch units for the Sight overlay (the eye buttons), and edit the roster by hand. Change a base size in the list preview and the planner remembers it for that unit next time.</li>
-      <li><b>Selected:</b> the tapped base or terrain piece. Take wounds off a model with <b>−1</b> (or give one back with <b>+1</b>); at none left, or with <b>Destroy</b>, it leaves the table as a casualty, and <b>Restore one</b> brings the unit's last casualty back where it fell. A unit whose models are all destroyed shows as destroyed in the Armies tab, with <b>Restore</b>. Here you can also turn oval and hull bases, change the label, colour or wounds per model, show a range ring around the model or unit (1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data), duplicate or remove.</li>
-      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list, and add markers.</li>
-      <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
-      <li><b>Rules:</b> choose whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. The defaults are 10th-edition values; set them to your 11th-edition cards.</li>
-      <li><b>Game:</b> record a game phase by phase. Start a game once both armies are deployed, choose the attacker and the phases, then press <b>Save step</b> in the bar above the board at the end of each phase. The bar shows the phase to play and each army's victory points, with − and + to change them. Here you also see the saved steps, delete the last one, copy the game as text, close the game, or open a closed game, which puts the models back where its last step had them.
-        <ul>
-          <li><b>Replay:</b> tap a step in the list, or use <b>◀</b>, <b>▶</b> and the slider in the bar, to see the board as it was at that step. Each moved model shows a line from where it was a step before, each unit that moved shows its longest move in inches, and destroyed models are faded outlines. <b>▶</b> and <b>▶▶</b> (play) move the models from one step to the next. Replay is read-only: dragging pans the board. <b>Back to game</b> (or the far right of the slider) returns to the board as it is now.</li>
-          <li><b>Correcting a step:</b> while replaying, press <b>Edit this step</b>. The board goes to that step; move, wound or restore models and change the score, then press <b>Save, later steps unchanged</b> (later steps keep their positions) or <b>Save and carry forward</b> (models the later steps didn't move stay where you put them), or <b>Cancel</b>. Either way your board comes back as it was before the edit.</li>
-        </ul></li>
-      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, or open a saved file. AI assistants and scripts can also drive the page directly through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
+      <li><b>Red dashed outline:</b> a base in an illegal position, overlapping a wall or another base.</li>
+      <li><b>Orange dashed outline:</b> a model out of unit coherency.</li>
+      <li><b>Red line between two models:</b> a friendly and an enemy model within engagement range.</li>
+      <li><b>Small red number on a base:</b> the wounds a model has left, once it has lost some.</li>
+      <li><b>Yellow ring:</b> the range ring of the selected model or unit.</li>
     </ul>
-    <h3>Keys</h3>
+
+    <h2>The tabs</h2>
+    <ul>
+      <li><b>Armies:</b> paste a list exported from the Warhammer app, or written as text, and press <b>Read list</b>. Check the units, fill in anything marked red (vehicles without a base need a hull size), then use it as the friendly or hostile army; it deploys into its zone straight away, with each model's wounds from the data. A base size you change in the preview is remembered for that unit next time. Here you also set each army's name, colour and zone, <b>Swap sides</b>, deploy or remove units, put units in <b>Reserve</b> and bring them on with <b>Arrive</b>, and watch units for Sight (the eye buttons). Under <b>Edit roster</b> you can write a list by hand, one unit per line, e.g. <code>LUC | Lucius + Flawless Blades | 1 @ 50 LUC w6, 6 @ 40 FB w3</code>, where <code>w6</code> is the wounds per model.</li>
+      <li><b>Bases:</b> add loose bases by size, for models that aren't in a list, and add markers.</li>
+      <li><b>Selected:</b> the base, marker or terrain piece you tapped.
+        <ul>
+          <li><b>Wounds:</b> <b>−1</b> takes a wound off, <b>+1</b> gives one back. A model with none left, or one you <b>Destroy</b>, leaves the table as a casualty; <b>Restore one</b> brings the unit's last casualty back where it fell.</li>
+          <li><b>Range rings:</b> 1" to 12", any distance, or the unit's <b>Move</b> and <b>Advance</b> from the data, around the model or the whole unit.</li>
+          <li><b>The base:</b> turn oval and hull bases, change the label, colour or wounds per model, duplicate or remove it.</li>
+        </ul></li>
+      <li><b>Terrain:</b> turn on <b>Edit terrain</b> to drag pieces, or add new ones. Each layout keeps its own changes, and <b>Restore layout defaults</b> undoes them.</li>
+      <li><b>Rules:</b> whether walls stop bases or only flag them, whether bases block each other, the coherency distance, the engagement range, and what blocks sight and how far it reaches. These defaults are 10th-edition values; set them to your 11th-edition cards.</li>
+      <li><b>Game:</b> start, follow and replay a recorded game (see below).</li>
+      <li><b>Save:</b> keep several named boards, copy a board as text to move it to another device or give it to an analysis AI, and load a board, a copied game or a map from text or a file. AI assistants and scripts can also drive the page through <code>window.planner</code>, described in <code>docs/api.md</code> in the project's GitHub repository.</li>
+    </ul>
+
+    <h2>Recording a game</h2>
+    <ul>
+      <li><b>Starting:</b> deploy both armies, then in the Game tab check the attacker (normally the army in the red zone) and the phases, and press <b>Start game</b>. The positions now are saved as step 0. A game has 5 battle rounds, each the attacker's turn then the defender's, with a step for every phase.</li>
+      <li><b>The game bar:</b> while a game is open, a bar under the top bar shows the phase to play, whose turn it is, and each army's victory points with − and +. Play the phase on the board, then press <b>Save step</b>: it keeps where every model is, which are in reserve or destroyed, and the score, and moves on to the next phase.</li>
+      <li><b>Replay:</b> press <b>◀</b>, drag the slider, or tap a step in the Game tab to see the board as it was then. Each moved model shows a line from where it was a step before, each unit that moved shows its longest move in inches, and destroyed models are faded outlines. <b>▶</b> moves on one step and <b>▶▶</b> plays the game through, moving the models. Rings, coherency and Sight work on the step you're looking at. A replayed step is read-only: dragging pans the board and the keys do nothing. <b>Back to game</b>, or the far right of the slider, returns to the board as it is now.</li>
+      <li><b>Correcting a step:</b> while replaying, press <b>Edit this step</b>. The board goes to that step (the bar turns yellow); move, wound or restore models and fix the score, then choose <b>Save, later steps unchanged</b> (later steps keep their positions), <b>Save and carry forward</b> (models the later steps didn't move stay where you put them) or <b>Cancel</b>. Your board comes back as it was before the edit either way.</li>
+      <li><b>In the Game tab:</b> the list of saved steps with their scores, <b>Delete last step</b>, <b>Copy game</b> (the game and the table as text, for another device or an analysis AI), and <b>Close game</b>. A closed game stays with the board; <b>Open</b> puts the models back where its last step had them.</li>
+    </ul>
+
+    <h2>Keys</h2>
     <ul>
       <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · arrow keys nudge the selection 1 mm, with <kbd>Shift</kbd> 1" · <kbd>R</kbd> turn 15° · <kbd>D</kbd> duplicate · <kbd>Delete</kbd> remove</li>
     </ul>
@@ -241,14 +260,14 @@ details pre{font-family:var(--mono);font-size:11px;overflow-x:auto;background:va
     <h2>Through a game</h2>
     <ol>
       <li><b>Pick the layout.</b> Agree Force Dispositions with your opponent and choose the matching layout.</li>
-      <li><b>Load both armies.</b> Import your list as friendly and your opponent's as hostile in the Armies tab. Each army deploys into its zone straight away, with each model's wounds from the data.</li>
+      <li><b>Load both armies.</b> Import your list as friendly and your opponent's as hostile in the Armies tab.</li>
       <li><b>Set the sides.</b> The attacker deploys in the red zone at the top. If you're on the wrong side, press <b>Swap sides</b>.</li>
-      <li><b>Reserves.</b> Put units that start off the table in reserve from the Armies tab. When one arrives, press <b>Arrive</b>; it appears in the middle of the view for you to drag into place.</li>
+      <li><b>Reserves.</b> Put units that start off the table in <b>Reserve</b> from the Armies tab.</li>
       <li><b>Deploy.</b> Drag units into position. Use range rings to check distances to the enemy and objectives, and clear any red or orange warnings.</li>
-      <li><b>Start the game.</b> In the Game tab, check the attacker and the phases and press <b>Start game</b>. The deployment is saved as step 0.</li>
-      <li><b>Play each phase.</b> The bar above the board shows the phase to play. Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move units with the distance readout and the ruler, check ranges with rings (the Move and Advance rings show how far a unit can go), and remove destroyed models from the Selected tab. Take wounds off models in the Selected tab as they're hit; destroyed models leave the table. Change the victory points with − and +, then press <b>Save step</b>. Each army gets its turn in every round, the attacker first, for 5 rounds.</li>
-      <li><b>Fix mistakes.</b> If a step was saved wrong, show it and press <b>Edit this step</b>.</li>
-      <li><b>Review.</b> Press <b>▶▶</b> in the bar to play the game through, or step through it with ◀ ▶. <b>Copy game</b> in the Game tab copies the game and the table as text, so you can load it on another device (Save tab, <b>Load from text</b>) or give it to an analysis AI.</li>
+      <li><b>Start the game.</b> In the Game tab, press <b>Start game</b>. The deployment is step 0.</li>
+      <li><b>Play each phase.</b> The game bar shows the phase. Before moving, select the unit and turn on <b>Sight</b> to see where it can end its move out of the enemy's view. Move with the distance readout, the ruler and the Move and Advance rings. Bring reserves on with <b>Arrive</b>; they appear in the middle of the view for you to drag into place. Take wounds off models in the Selected tab as they're hit. Change the score with − and +, then press <b>Save step</b>.</li>
+      <li><b>Fix mistakes.</b> If a step was saved wrong, show it with ◀ and press <b>Edit this step</b>.</li>
+      <li><b>Review.</b> Press <b>▶▶</b> to play the game through, or step through it with ◀ ▶. <b>Copy game</b> gives you the whole game as text to load on another device (Save tab, <b>Load from text</b>) or to give to an analysis AI.</li>
     </ol>
   </div>
 </dialog>

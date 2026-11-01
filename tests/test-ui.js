@@ -14,6 +14,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   // --- help
   await pg.click('#btn-help'); await pg.waitForTimeout(150); await pg.screenshot({ path: shots + '/help.png' });
   ok(await P(() => document.getElementById('help').open && document.getElementById('help').textContent.includes('Through a game')), 'help opens with usage and game steps');
+  ok(await P(() => ['Recording a game', 'Edit this step', 'Save step', 'Restore one', 'Copy game', 'What the marks mean', 'w6'].every(t => document.getElementById('help').textContent.includes(t))), 'help covers games, casualties, replay and the marks');
   await pg.click('#help-close'); ok(await P(() => !document.getElementById('help').open), 'help closes');
   await pg.click('#map-btn'); await pg.waitForTimeout(150); await pg.screenshot({ path: shots + '/picker.png' });
   await pg.click('#pk-PTF-REC'); await pg.click('#pk-v-2');
