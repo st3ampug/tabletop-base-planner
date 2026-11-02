@@ -13,7 +13,11 @@ function score(q, T){ if (!q.length || !T.size) return 0; let i = 0; for (const 
 function matchUnit(name, fac){
   const q = toks(name); let best = null, bs = 0;
   for (const c of CATT){ let s = score(q, c.t); if (!s) continue; if (fac !== null && c.u[1] === fac) s += 0.06; if (s > bs || (s === bs && best && c.u[0].length < best[0].length)){ bs = s; best = c.u; } }
-  return bs >= 0.62 ? best : null;
+  if (bs >= 0.62) return best;
+  // A loadout suffix the data doesn't list ("Eradicator Squad with melta rifles"): try the name before " with ", exact words only.
+  const m = /^(.+?)\s+with\s+/i.exec(name);
+  if (m){ const b = matchUnit(m[1], fac); if (b && score(toks(m[1]), new Set(toks(b[0]))) >= 0.99) return b; }
+  return null;
 }
 function detectFaction(text, heads){
   const fs = CAT.factions || [], low = text.toLowerCase().replace(/[’']/g, '');
