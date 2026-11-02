@@ -15,6 +15,8 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   await pg.click('#btn-help'); await pg.waitForTimeout(150); await pg.screenshot({ path: shots + '/help.png' });
   ok(await P(() => document.getElementById('help').open && document.getElementById('help').textContent.includes('Through a game')), 'help opens with usage and game steps');
   ok(await P(() => ['Recording a game', 'Edit this step', 'Save step', 'Restore one', 'Copy game', 'What the marks mean', 'w6'].every(t => document.getElementById('help').textContent.includes(t))), 'help covers games, casualties, replay and the marks');
+  const rows = await P(() => [...document.querySelectorAll('.unit')].map(u => ({ nm: u.querySelector('.nm').getBoundingClientRect().width, w: u.scrollWidth - u.clientWidth })));
+  ok(rows.length > 5 && rows.every(r => r.nm > 120 && r.w <= 0), 'unit names keep their width and rows don\'t overflow: narrowest ' + Math.round(Math.min(...rows.map(r => r.nm))) + ' px');
   await pg.click('#help-close'); ok(await P(() => !document.getElementById('help').open), 'help closes');
   await pg.click('#map-btn'); await pg.waitForTimeout(150); await pg.screenshot({ path: shots + '/picker.png' });
   await pg.click('#pk-PTF-REC'); await pg.click('#pk-v-2');
